@@ -12,10 +12,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenModal }) => {
     <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
       {/* Search Input */}
       <div className="relative w-96">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-secondary" />
         <Input
           placeholder="Search patients, doctors, appointments..."
-          className="pl-9 bg-slate-50/70 border-slate-200 focus:bg-white"
+          className="pl-9 bg-slate-50/70 border-slate-200 focus:bg-white focus:border-primary text-dark"
         />
       </div>
 
@@ -23,16 +23,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenModal }) => {
       <div className="flex items-center gap-4">
         <Button
           onClick={onOpenModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-medium gap-2 shadow-sm"
+          variant="default"
+          className="gap-2"
         >
           <Plus className="h-4 w-4" />
           <span>New Appointment</span>
         </Button>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+        <button className="relative p-2 rounded-xl text-slate-600 hover:text-secondary hover:bg-cream/40 transition-colors cursor-pointer">
           <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500"></span>
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent"></span>
         </button>
 
         <div className="h-6 w-px bg-slate-200"></div>
@@ -42,12 +43,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenModal }) => {
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"
             alt="Admin"
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-blue-500/20"
+            className="h-9 w-9 rounded-full object-cover ring-2 ring-primary/30"
           />
           <div className="text-left hidden sm:block">
-            <div className="text-sm font-semibold text-slate-800 flex items-center gap-1">
+            <div className="text-sm font-semibold text-dark flex items-center gap-1">
               Dr. Sohel Sagor
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-500" />
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
             </div>
             <div className="text-xs text-slate-500">Hospital Director</div>
           </div>

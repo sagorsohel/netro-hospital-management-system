@@ -8,7 +8,6 @@ import {
   Pill,
   CreditCard,
   Settings,
-  HelpCircle,
   Activity
 } from 'lucide-react';
 
@@ -29,15 +28,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col min-h-screen border-r border-slate-800 shrink-0 select-none">
+    <aside className="w-64 bg-dark text-white flex flex-col min-h-screen border-r border-slate-800 shrink-0 select-none">
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
+        <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/40">
           <Activity className="h-6 w-6 text-white" />
         </div>
         <div>
           <h1 className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
-            NETRO <span className="text-blue-400 font-semibold text-xs px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30">HMS</span>
+            NETRO <span className="text-cream font-semibold text-xs px-2 py-0.5 rounded-full bg-primary/30 border border-primary">HMS</span>
           </h1>
           <p className="text-xs text-slate-400">Hospital Management</p>
         </div>
@@ -57,12 +56,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
               onClick={() => setCurrentTab(item.id)}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-semibold'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  ? 'bg-primary text-white shadow-md shadow-primary/30 font-semibold'
+                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-secondary'
               }`}
             >
               <div className="flex items-center gap-3">
-                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-secondary'}`} />
                 <span>{item.label}</span>
               </div>
               {item.badge && (
@@ -70,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
                   className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
                     isActive
                       ? 'bg-white/20 text-white'
-                      : 'bg-slate-800 text-slate-300'
+                      : 'bg-secondary text-white'
                   }`}
                 >
                   {item.badge}
@@ -85,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
       <div className="p-4 border-t border-slate-800 space-y-2">
         <button
           onClick={() => setCurrentTab('settings')}
-          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 ${
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-300 hover:bg-slate-800 hover:text-secondary ${
             currentTab === 'settings' ? 'bg-slate-800 text-white' : ''
           }`}
         >
@@ -93,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
           <span>System Settings</span>
         </button>
         <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50 flex items-center gap-3">
-          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
           <span className="text-xs text-slate-300 font-medium">Server Online (v1.0.0)</span>
         </div>
       </div>

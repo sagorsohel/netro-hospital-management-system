@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, UserCheck, CalendarDays, DollarSign, ArrowUpRight, Bed } from 'lucide-react';
+import { Users, UserCheck, CalendarDays, DollarSign, ArrowUpRight } from 'lucide-react';
 import { useAppSelector } from '../store/hooks';
 import { Card, CardContent } from './ui/card';
 
@@ -12,32 +12,28 @@ export const StatsCards: React.FC = () => {
       value: stats.totalPatients.toLocaleString(),
       subtext: stats.patientsTrend,
       icon: Users,
-      color: "from-blue-600 to-indigo-600",
-      iconBg: "bg-blue-50 text-blue-600"
+      iconBg: "bg-primary/10 text-primary",
     },
     {
       title: "Available Doctors",
       value: stats.availableDoctors.toString(),
       subtext: stats.doctorsTrend,
       icon: UserCheck,
-      color: "from-emerald-600 to-teal-600",
-      iconBg: "bg-emerald-50 text-emerald-600"
+      iconBg: "bg-secondary/10 text-secondary",
     },
     {
       title: "Today's Appointments",
       value: stats.todayAppointments.toString(),
       subtext: stats.appointmentsTrend,
       icon: CalendarDays,
-      color: "from-violet-600 to-purple-600",
-      iconBg: "bg-purple-50 text-purple-600"
+      iconBg: "bg-cream text-dark border border-amber-200",
     },
     {
-      title: "Hospital Revenue",
-      value: stats.hospitalRevenue,
-      subtext: stats.revenueTrend,
+      title: "Emergency / Active",
+      value: `${stats.emergencyCases} Cases`,
+      subtext: "+2 incoming today",
       icon: DollarSign,
-      color: "from-amber-600 to-orange-600",
-      iconBg: "bg-amber-50 text-amber-600"
+      iconBg: "bg-accent/10 text-accent",
     }
   ];
 
@@ -50,8 +46,8 @@ export const StatsCards: React.FC = () => {
             <CardContent className="p-5 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{card.title}</p>
-                <h3 className="text-2xl font-bold text-slate-900 mt-1">{card.value}</h3>
-                <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium mt-1.5">
+                <h3 className="text-2xl font-bold text-dark mt-1">{card.value}</h3>
+                <div className="flex items-center gap-1 text-xs text-primary font-medium mt-1.5">
                   <ArrowUpRight className="h-3.5 w-3.5" />
                   <span>{card.subtext}</span>
                 </div>

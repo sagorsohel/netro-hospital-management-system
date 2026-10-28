@@ -3,19 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import {
-  LayoutDashboard,
-  UserRoundCheck,
-  CalendarCheck,
+  LayoutGrid,
   Users,
-  Building2,
-  Barcode,
-  BedDouble,
-  ReceiptText,
-  Briefcase,
-  Wrench,
-  PieChart,
+  Stethoscope,
+  Calendar,
+  CreditCard,
+  Pill,
+  FileText,
+  Settings,
   LogOut,
-  ShieldCheck
 } from 'lucide-react';
 
 interface HospitalSidebarProps {
@@ -28,108 +24,78 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'HMS Dashboard', icon: LayoutDashboard },
-    { id: 'doctors', label: 'Doctors & Roster', icon: UserRoundCheck, badge: '48' },
-    { id: 'appointments', label: 'Appointments & Serials', icon: CalendarCheck, badge: '12 new' },
-    { id: 'patients', label: 'Patients & Records', icon: Users },
-    { id: 'diagnostics', label: 'Diagnostics & Barcode', icon: Barcode, badge: 'Lab' },
-    { id: 'admissions', label: 'IPD Bed Admissions', icon: BedDouble },
-    { id: 'expenses', label: 'Hospital Expenses', icon: ReceiptText },
-    { id: 'hr', label: 'Staff & HR Roster', icon: Briefcase },
-    { id: 'equipment', label: 'Equipment Tracking', icon: Wrench },
-    { id: 'shareholders', label: 'Shareholder Reports', icon: PieChart, badge: 'Read-only' },
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'patients', label: 'Patients', icon: Users },
+    { id: 'doctors', label: 'Doctors', icon: Stethoscope },
+    { id: 'appointments', label: 'Appointments', icon: Calendar },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
+    { id: 'pharmacy', label: 'Pharmacy', icon: Pill },
+    { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  return (
-    <aside className="w-68 bg-dark text-white flex flex-col h-screen sticky top-0 border-r border-slate-800 shrink-0 select-none overflow-hidden z-20">
-      {/* Brand Header */}
-      <div className="p-4 px-5 border-b border-slate-800 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/40">
-            <Building2 className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="font-bold text-base tracking-tight text-white flex items-center gap-1.5">
-              NETRO <span className="text-sky-300 font-semibold text-[10px] px-1.5 py-0.2 rounded-full bg-secondary/40 border border-secondary">HMS</span>
-            </h1>
-            <p className="text-[11px] text-slate-400">Core Hospital System</p>
-          </div>
-        </div>
-      </div>
+  const handleSignOut = () => {
+    dispatch(logout());
+    navigate('/');
+  };
 
-      {/* Navigation - Ultra Clean & No Scrollbar */}
-      <nav
-        className="flex-1 px-3 py-3 space-y-1 overflow-y-auto no-scrollbar"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-          Hospital Navigation
-        </div>
-        {menuItems.map((item) => {
+  return (
+    <aside className="w-56 bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between shrink-0 select-none">
+      {/* Navigation Menu */}
+      <nav className="space-y-1.5">
+        {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
           return (
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-secondary text-white shadow-md shadow-secondary/30 font-semibold'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                  ? 'bg-primary text-white shadow-sm shadow-primary/25'
+                  : 'text-slate-600 hover:text-dark hover:bg-slate-50'
               }`}
             >
-              <div className="flex items-center gap-2.5">
-                <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-              </div>
-              {item.badge && (
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300 border border-slate-700'
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
+              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+              <span>{item.label}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* User & Logout Footer */}
-      <div className="p-3 border-t border-slate-800 space-y-2 bg-slate-950/60 shrink-0">
-        <div className="flex items-center justify-between px-2 py-1">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            <span className="text-[11px] text-slate-300 font-medium">Core HMS Live</span>
+      {/* User Info & Sign Out Footer */}
+      <div className="pt-4 border-t border-slate-100 space-y-3">
+        {/* User Card */}
+        <div className="flex items-center gap-2.5 px-2">
+          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs ring-1 ring-primary/30 shrink-0">
+            {user?.name
+              ? user.name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join('')
+              : 'RM'}
           </div>
-          <button
-            onClick={() => {
-              dispatch(logout());
-              navigate('/');
-            }}
-            title="Logout"
-            className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <div className="overflow-hidden text-left">
+            <h5 className="text-xs font-bold text-dark truncate">
+              {user?.name || 'Admin User'}
+            </h5>
+            <p className="text-[10px] text-slate-400 truncate">
+              {user?.email || 'admin@hospital.com'}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800">
-          <img
-            src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-            alt="User"
-            className="h-8 w-8 rounded-full object-cover ring-1 ring-secondary"
-          />
-          <div className="text-left overflow-hidden">
-            <div className="text-xs font-semibold text-white truncate flex items-center gap-1">
-              {user?.name || 'Dr. Sohel Sagor'}
-              <ShieldCheck className="h-3 w-3 text-sky-400 shrink-0" />
-            </div>
-            <div className="text-[10px] text-slate-400 truncate">{user?.role || 'Hospital Director'}</div>
-          </div>
-        </div>
+        {/* Red Outlined Sign Out Button */}
+        <button
+          onClick={handleSignOut}
+          type="button"
+          className="w-full py-2 px-3 rounded-xl border border-accent/40 text-accent hover:bg-accent/10 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          <span>Sign Out</span>
+        </button>
       </div>
     </aside>
   );

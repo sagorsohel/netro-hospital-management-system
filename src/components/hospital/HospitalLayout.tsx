@@ -1,98 +1,144 @@
 import React, { useState } from 'react';
 import { HospitalSidebar } from './HospitalSidebar';
 import { HospitalHeader } from './HospitalHeader';
-import { StatsCards } from '../StatsCards';
+import { HospitalDashboardView } from './HospitalDashboardView';
 import { AppointmentsTable } from '../AppointmentsTable';
 import { DoctorsList } from '../DoctorsList';
 import { NewAppointmentModal } from '../NewAppointmentModal';
-import { Activity, Building2, Barcode, BedDouble, CalendarCheck } from 'lucide-react';
+import { useAppDispatch } from '../../store/hooks';
+import { setActiveModule } from '../../store/slices/authSlice';
 
 export const HospitalLayout: React.FC = () => {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const dispatch = useAppDispatch();
+
+  const handleTabChange = (tab: string) => {
+    if (tab === 'pharmacy') {
+      dispatch(setActiveModule('pharmacy'));
+      return;
+    }
+    setCurrentTab(tab);
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#fbfbf6] font-sans text-dark">
-      {/* Fixed Left Hospital Sidebar Navigation */}
-      <HospitalSidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+    <div className="min-h-screen bg-[#F8FAFC] text-dark flex flex-col p-4 sm:p-6 lg:p-7 gap-5 font-sans overflow-x-hidden">
+      {/* 1. Ultra Clean Top Floating Navigation Bar */}
+      <HospitalHeader onOpenModal={() => setIsModalOpen(true)} />
 
-      {/* Scrollable Right Hospital Content Container */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <HospitalHeader onOpenModal={() => setIsModalOpen(true)} />
+      {/* 2. Main Content Canvas: Floating Sidebar + Dynamic Content Canvas */}
+      <div className="flex-1 flex gap-5 items-start min-h-0">
+        {/* Left Floating Rounded Sidebar */}
+        <div className="hidden md:block sticky top-6">
+          <HospitalSidebar currentTab={currentTab} setCurrentTab={handleTabChange} />
+        </div>
 
-        <main
-          className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 no-scrollbar"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {/* Welcome Banner */}
-          <div className="bg-gradient-to-r from-secondary via-secondary-hover to-slate-900 rounded-2xl p-7 text-white shadow-lg shadow-secondary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-xs mb-2">
-                <Building2 className="h-3.5 w-3.5 text-cream" />
-                <span>Core Hospital Administration & Clinical Suite</span>
+        {/* Right Scrollable Dashboard Canvas */}
+        <main className="flex-1 min-w-0 pb-10">
+          {currentTab === 'dashboard' && (
+            <HospitalDashboardView
+              onOpenNewAppointment={() => setIsModalOpen(true)}
+              onOpenRegisterPatient={() => setIsModalOpen(true)}
+            />
+          )}
+
+          {currentTab === 'doctors' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-dark">Doctors & Clinical Roster</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Live schedule, department roster, and patient queues.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs cursor-pointer"
+                >
+                  + Add Doctor Schedule
+                </button>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight">Hospital Management System (HMS)</h2>
-              <p className="text-cream/90 text-sm mt-1 max-w-xl">
-                Central patient registration, barcoded diagnostic labs, indoor bed allocation, and automated doctor queue serials.
+              <DoctorsList />
+            </div>
+          )}
+
+          {currentTab === 'appointments' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-dark">Appointments & Serials</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Real-time doctor appointment queue with SMS & barcode confirmation.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs cursor-pointer"
+                >
+                  + Book Appointment
+                </button>
+              </div>
+              <AppointmentsTable />
+            </div>
+          )}
+
+          {currentTab === 'patients' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-black text-dark">Registered Patients</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Digital health profile, IPD admissions, and diagnostic lab reports.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs cursor-pointer"
+                >
+                  + Register New Patient
+                </button>
+              </div>
+              <AppointmentsTable />
+            </div>
+          )}
+
+          {currentTab === 'billing' && (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center space-y-3">
+              <h3 className="text-lg font-bold text-dark">Diagnostic & IPD Billing</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Barcoded billing, itemized bed charges, lab test invoices, and automated patient receipts.
               </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-24">
-                <div className="text-xl font-bold text-cream">84%</div>
-                <div className="text-[11px] text-white/80">Bed Occupancy</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-24">
-                <div className="text-xl font-bold text-cream">48 Active</div>
-                <div className="text-[11px] text-white/80">On-Duty Doctors</div>
+              <div className="pt-2">
+                <button
+                  onClick={() => setCurrentTab('dashboard')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Back to Dashboard
+                </button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Quick Feature Badges (Proposal Alignment) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 shadow-2xs">
-              <div className="h-10 w-10 rounded-lg bg-sky-50 text-secondary flex items-center justify-center shrink-0">
-                <Barcode className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">Barcoded Lab Billing</h4>
-                <p className="text-[11px] text-slate-500">Fast test tracking & auto SMS notification</p>
+          {['reports', 'settings'].includes(currentTab) && (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center space-y-3">
+              <h3 className="text-lg font-bold text-dark capitalize">{currentTab} Overview</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Hospital management analytics, department performance, and administrative privileges.
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setCurrentTab('dashboard')}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold cursor-pointer"
+                >
+                  Back to Dashboard
+                </button>
               </div>
             </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 shadow-2xs">
-              <div className="h-10 w-10 rounded-lg bg-emerald-50 text-primary flex items-center justify-center shrink-0">
-                <CalendarCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">Doctor Serials & Queue</h4>
-                <p className="text-[11px] text-slate-500">Live booking with date & time confirmation</p>
-              </div>
-            </div>
-
-            <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center gap-3 shadow-2xs">
-              <div className="h-10 w-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                <BedDouble className="h-5 w-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-800">IPD Admission & Beds</h4>
-                <p className="text-[11px] text-slate-500">Daily room charges & OT billing tracking</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Hospital KPI Statistics Cards */}
-          <StatsCards />
-
-          {/* Appointments Table & Doctors List */}
-          <div className="space-y-8">
-            <AppointmentsTable />
-            <DoctorsList />
-          </div>
+          )}
         </main>
       </div>
 
-      {/* Booking Modal */}
+      {/* New Appointment / Register Patient Modal */}
       <NewAppointmentModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );

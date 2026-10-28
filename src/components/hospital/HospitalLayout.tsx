@@ -33,17 +33,17 @@ export const HospitalLayout: React.FC = () => {
               </div>
               <h2 className="text-2xl font-bold tracking-tight">Hospital Management System (HMS)</h2>
               <p className="text-cream/90 text-sm mt-1 max-w-xl">
-                সেন্ট্রাল পেশেন্ট রেজিস্ট্রেশন, বারকোড ল্যাব টেস্ট বিলিং, ইনডোর বেড বরাদ্দ ও ডাক্তারদের ফ্রি সিরিয়াল কিউ ব্যবস্থাপনা।
+                Central patient registration, barcoded diagnostic labs, indoor bed allocation, and automated doctor queue serials.
               </p>
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-24">
-                <div className="text-xl font-bold text-cream">৮৪%</div>
-                <div className="text-[11px] text-white/80">বেড অকুপেন্সি</div>
+                <div className="text-xl font-bold text-cream">84%</div>
+                <div className="text-[11px] text-white/80">Bed Occupancy</div>
               </div>
               <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-24">
-                <div className="text-xl font-bold text-cream">৪৮ জন</div>
-                <div className="text-[11px] text-white/80">অন-ডিউটি ডাক্তার</div>
+                <div className="text-xl font-bold text-cream">48 Active</div>
+                <div className="text-[11px] text-white/80">On-Duty Doctors</div>
               </div>
             </div>
           </div>
@@ -55,8 +55,8 @@ export const HospitalLayout: React.FC = () => {
                 <Barcode className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-800">বারকোড ল্যাব বিলিং</h4>
-                <p className="text-[11px] text-slate-500">টেস্ট স্ট্যাটাস আপডেট ও স্বয়ংক্রিয় SMS</p>
+                <h4 className="text-xs font-bold text-slate-800">Barcoded Lab Billing</h4>
+                <p className="text-[11px] text-slate-500">Fast test tracking & auto SMS notification</p>
               </div>
             </div>
 
@@ -65,8 +65,8 @@ export const HospitalLayout: React.FC = () => {
                 <CalendarCheck className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-800">ফ্রি সিরিয়াল ও কিউ সিস্টেম</h4>
-                <p className="text-[11px] text-slate-500">রোগীর কাছে তারিখ ও সময় কনফার্মেশন</p>
+                <h4 className="text-xs font-bold text-slate-800">Doctor Serials & Queue</h4>
+                <p className="text-[11px] text-slate-500">Live booking with date & time confirmation</p>
               </div>
             </div>
 
@@ -75,8 +75,8 @@ export const HospitalLayout: React.FC = () => {
                 <BedDouble className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-800">IPD অ্যাডমিশন ও বেড চার্জ</h4>
-                <p className="text-[11px] text-slate-500">দৈনিক ভাড়া ও ওটি বিলিং ট্র্যাকিং</p>
+                <h4 className="text-xs font-bold text-slate-800">IPD Admission & Beds</h4>
+                <p className="text-[11px] text-slate-500">Daily room charges & OT billing tracking</p>
               </div>
             </div>
           </div>

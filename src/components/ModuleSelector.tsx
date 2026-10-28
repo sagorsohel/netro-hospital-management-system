@@ -68,7 +68,7 @@ export const ModuleSelector: React.FC = () => {
             className="text-xs text-slate-400 hover:text-red-400 hover:bg-red-500/10 gap-1.5 cursor-pointer px-3 py-1.5 h-auto rounded-lg"
           >
             <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">লগআউট</span>
+            <span className="hidden sm:inline">Logout</span>
           </Button>
         </div>
       </header>
@@ -79,13 +79,13 @@ export const ModuleSelector: React.FC = () => {
         <div className="text-center space-y-3 mb-10 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-primary/20 text-emerald-300 border border-primary/30 backdrop-blur-xs">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>সফলভাবে লগইন হয়েছে • মডিউল নির্বাচন করুন</span>
+            <span>Login Successful • Select Your Module</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
-            কোন সিস্টেমে প্রবেশ করতে চান?
+            Which System Would You Like to Access?
           </h2>
           <p className="text-sm text-slate-300">
-            আপনার সুবিধাজনক ড্যাশবোর্ডে প্রবেশ করতে নিচে থাকা অপশনগুলোর যেকোনো একটি সিলেক্ট করুন। আপনি পরবর্তীতে যেকোনো সময় মডিউল পরিবর্তন করতে পারবেন।
+            Select one of the modules below to enter your workspace. You can switch modules at any time from your profile.
           </p>
         </div>
 
@@ -113,7 +113,7 @@ export const ModuleSelector: React.FC = () => {
                   Core Hospital Management (HMS)
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-                  রোগীর স্থায়ী ডিজিটাল প্রোফাইল, বারকোড ল্যাব টেস্ট বিলিং, IPD ইনডোর অ্যাডমিশন ও বেড চার্জ, ডাক্তার ও ফ্রি সিরিয়াল সিস্টেম।
+                  Permanent patient digital profile, barcode lab diagnostics, IPD admission & bed charges, doctor scheduling and queue booking.
                 </p>
               </div>
 
@@ -121,19 +121,19 @@ export const ModuleSelector: React.FC = () => {
               <div className="space-y-2.5 pt-2 border-t border-slate-700/60">
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <Barcode className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span>বারকোড ডায়াগনস্টিক বিলিং ও SMS রিপোর্ট রেডি এলার্ট</span>
+                  <span>Barcode Diagnostic Billing & SMS Report Alerts</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <CalendarCheck className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span>ডাক্তার প্রোফাইল ও অটোমেটিক ফ্রি সিরিয়াল কিউ বুকিং</span>
+                  <span>Doctor Profile & Automatic Free Serial Queue Booking</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <Layers className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span>IPD কেবিন/বেড অ্যালোকেশন ও ডিসচার্জ কনসোলিডেটেড বিল</span>
+                  <span>IPD Cabin/Bed Allocation & Consolidated Billing</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0" />
-                  <span>হাসপাতাল খরচ, এইচআর স্টাফ শিডিউল ও ইকুইপমেন্ট লগ</span>
+                  <span>Hospital Expenses, HR Staff Scheduling & Asset Logs</span>
                 </div>
               </div>
             </div>
@@ -144,7 +144,7 @@ export const ModuleSelector: React.FC = () => {
                 variant="default"
                 className="w-full bg-secondary hover:bg-secondary-hover text-white font-semibold py-3 h-auto rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-secondary/30 transition-all text-sm group-hover:gap-3"
               >
-                <span>কোর হসপিটাল ড্যাশবোর্ডে প্রবেশ করুন</span>
+                <span>Enter Core Hospital Dashboard</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -172,7 +172,7 @@ export const ModuleSelector: React.FC = () => {
                   Pharmacy Management & POS
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-                  কাউন্টার বিলিং, মাল্টি-ইউনিট স্টক ট্র্যাকিং (কার্টুন ➔ পাতা ➔ পিস), FEFO এক্সপায়ারি এলার্ট, WhatsApp PDF ইনভয়েস ও মাল্টি-ব্রাঞ্চ।
+                  Fast counter billing, multi-unit stock tracking (Carton ➔ Strip ➔ Piece), FEFO expiry alerts, WhatsApp PDF invoices & multi-branch.
                 </p>
               </div>
 
@@ -180,19 +180,19 @@ export const ModuleSelector: React.FC = () => {
               <div className="space-y-2.5 pt-2 border-t border-slate-700/60">
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <Receipt className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>দ্রুত পিওএস সেলস, ফোন নম্বর সংগ্রহ ও রসিদ প্রিন্টিং</span>
+                  <span>Rapid POS Sales, Phone Registration & Receipt Printing</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <Layers className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>মাল্টি-ইউনিট অটো কনভার্সন (কার্টুন ➔ প্যাকেট ➔ পিস)</span>
+                  <span>Multi-Unit Auto Conversion (Carton ➔ Strip ➔ Piece)</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <AlertTriangle className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>FEFO এক্সপায়ারি নোটিফিকেশন ও লো-স্টক রিমাইন্ডার</span>
+                  <span>FEFO Expiry Notifications & Low-Stock Reminders</span>
                 </div>
                 <div className="flex items-center gap-2.5 text-xs text-slate-200">
                   <Send className="h-4 w-4 text-emerald-400 shrink-0" />
-                  <span>কাস্টমারের WhatsApp-এ PDF ইনভয়েস ও SMS সামারি প্রেরণ</span>
+                  <span>Send PDF Invoices to Customer WhatsApp & SMS Summary</span>
                 </div>
               </div>
             </div>
@@ -203,7 +203,7 @@ export const ModuleSelector: React.FC = () => {
                 variant="default"
                 className="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-3 h-auto rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition-all text-sm group-hover:gap-3"
               >
-                <span>ফার্মেসি POS পোর্টালে প্রবেশ করুন</span>
+                <span>Enter Pharmacy POS Portal</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -213,7 +213,7 @@ export const ModuleSelector: React.FC = () => {
         {/* Bottom Note */}
         <div className="mt-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          <span>সুপার অ্যাডমিন হিসেবে আপনি উভয় মডিউলে আনলিমিটেড নিয়ন্ত্রণ ও তদারকির সুযোগ পাচ্ছেন।</span>
+          <span>As Super Administrator, you have full privileges and access to both modules.</span>
         </div>
       </main>
     </div>

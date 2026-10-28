@@ -177,17 +177,17 @@ export const PharmacyDashboard: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold tracking-tight">Pharmacy Management & POS</h2>
           <p className="text-emerald-100 text-sm mt-1 max-w-xl">
-            মাল্টি-ইউনিট স্টক কনভার্সন (কার্টুন ➔ প্যাকেট ➔ পিস), FEFO এক্সপায়ারি ট্র্যাকিং এবং WhatsApp ডিজিটাল ইনভয়েসিং।
+            Multi-unit stock conversion (Carton ➔ Strip ➔ Piece), FEFO expiry tracking, and WhatsApp digital invoicing.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-28">
-            <div className="text-xs text-emerald-200">সক্রিয় শাখা</div>
-            <div className="text-sm font-bold text-white mt-0.5">মেইন ব্রাঞ্চ #১</div>
+            <div className="text-xs text-emerald-200">Active Branch</div>
+            <div className="text-sm font-bold text-white mt-0.5">Main Branch #1</div>
           </div>
           <div className="bg-white/10 backdrop-blur-xs p-3.5 rounded-xl border border-white/20 text-center min-w-28">
-            <div className="text-xs text-emerald-200">মোট মেডিসিন</div>
-            <div className="text-sm font-bold text-white mt-0.5">১,৪২০ আইটেম</div>
+            <div className="text-xs text-emerald-200">Total Medicines</div>
+            <div className="text-sm font-bold text-white mt-0.5">1,420 Items</div>
           </div>
         </div>
       </div>
@@ -198,11 +198,11 @@ export const PharmacyDashboard: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              আজকের ফার্মেসি বিক্রি
+              Today's Pharmacy Sales
             </div>
-            <div className="text-2xl font-black text-dark mt-1">৳ ৪৮,২৫০</div>
+            <div className="text-2xl font-black text-dark mt-1">$48,250</div>
             <div className="text-xs text-primary font-semibold flex items-center gap-1 mt-1">
-              <TrendingUp className="h-3.5 w-3.5" /> +১২.৫% বৃদ্ধি (১৪২ ইনভয়েস)
+              <TrendingUp className="h-3.5 w-3.5" /> +12.5% increase (142 invoices)
             </div>
           </div>
           <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
@@ -214,11 +214,11 @@ export const PharmacyDashboard: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              মোট স্টক ভ্যালুয়েশন
+              Total Stock Valuation
             </div>
-            <div className="text-2xl font-black text-dark mt-1">৳ ৮,৪৫,০০০</div>
+            <div className="text-2xl font-black text-dark mt-1">$8,45,000</div>
             <div className="text-xs text-slate-500 font-medium mt-1">
-              ১,৪২০ টি বিভিন্ন ব্র্যান্ডেড ওষুধ
+              1,420 Active Branded Medicines
             </div>
           </div>
           <div className="h-12 w-12 rounded-2xl bg-sky-50 flex items-center justify-center text-secondary">
@@ -230,11 +230,11 @@ export const PharmacyDashboard: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              FEFO এক্সপায়ারি এলার্ট
+              FEFO Expiry Alerts
             </div>
-            <div className="text-2xl font-black text-amber-600 mt-1">৩ টি ব্যাচ</div>
+            <div className="text-2xl font-black text-amber-600 mt-1">3 Batches</div>
             <div className="text-xs text-amber-600 font-semibold flex items-center gap-1 mt-1">
-              <CalendarClock className="h-3.5 w-3.5" /> ৩০ দিনের মধ্যে মেয়াদ শেষ
+              <CalendarClock className="h-3.5 w-3.5" /> Expiring within 30 days
             </div>
           </div>
           <div className="h-12 w-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
@@ -246,11 +246,11 @@ export const PharmacyDashboard: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              লো-স্টক সতর্কবার্তা
+              Low-Stock Alerts
             </div>
-            <div className="text-2xl font-black text-red-600 mt-1">৮ টি আইটেম</div>
+            <div className="text-2xl font-black text-red-600 mt-1">8 Items</div>
             <div className="text-xs text-red-600 font-semibold flex items-center gap-1 mt-1">
-              রি-অর্ডার থ্রেশহোল্ড অতিক্রম
+              Reorder threshold exceeded
             </div>
           </div>
           <div className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600">
@@ -268,18 +268,18 @@ export const PharmacyDashboard: React.FC = () => {
               <span>Section 3.1 Live Feature Demo</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900">
-              মাল্টি-ইউনিট ইনভেন্টরি স্টক (কার্টুন ➔ প্যাকেট/পাতা ➔ পিস)
+              Multi-Unit Inventory Stock (Carton ➔ Packet/Strip ➔ Piece)
             </h3>
             <p className="text-xs text-slate-500">
-              সিস্টেম একই ওষুধ স্বয়ংক্রিয়ভাবে কার্টুন, প্যাকেট ও পিস ইউনিটে হিসাব রাখে এবং বিক্রি অনুযায়ী কনভার্ট করে।
+              The system automatically tracks carton, strip, and piece units and converts them based on sales in real-time.
             </p>
           </div>
           <Button
-            onClick={() => triggerToast('নতুন ওষুধ স্টক-ইন এন্ট্রি উইন্ডো ওপেন হয়েছে')}
+            onClick={() => triggerToast('New medicine stock-in window opened')}
             className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>নতুন স্টক-ইন এন্ট্রি</span>
+            <span>New Stock-In Entry</span>
           </Button>
         </div>
 
@@ -287,13 +287,13 @@ export const PharmacyDashboard: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3.5 px-6">ওষুধ ও জেনেরিক নাম</th>
-                <th className="py-3.5 px-6">ব্যাচ ও মেয়াদ (FEFO)</th>
-                <th className="py-3.5 px-6">কার্টুন সংখ্যা</th>
-                <th className="py-3.5 px-6">প্যাকেট / পাতা</th>
-                <th className="py-3.5 px-6">মোট পিস (Live Stock)</th>
-                <th className="py-3.5 px-6">বিক্রয় মূল্য / পিস</th>
-                <th className="py-3.5 px-6">স্ট্যাটাস</th>
+                <th className="py-3.5 px-6">Medicine & Generic</th>
+                <th className="py-3.5 px-6">Batch & Expiry (FEFO)</th>
+                <th className="py-3.5 px-6">Carton Qty</th>
+                <th className="py-3.5 px-6">Packets / Strips</th>
+                <th className="py-3.5 px-6">Total Pieces (Live Stock)</th>
+                <th className="py-3.5 px-6">Unit Price / Piece</th>
+                <th className="py-3.5 px-6">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -311,42 +311,42 @@ export const PharmacyDashboard: React.FC = () => {
                   </td>
                   <td className="py-4 px-6">
                     <span className="font-semibold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg">
-                      {item.cartonQty} কার্টুন
+                      {item.cartonQty} Cartons
                     </span>
                   </td>
                   <td className="py-4 px-6">
                     <span className="font-semibold text-slate-900">
-                      {item.cartonQty * item.packetPerCarton} প্যাকেট
+                      {item.cartonQty * item.packetPerCarton} Strips
                     </span>
                     <span className="text-[10px] text-slate-500 block">
-                      (প্রতি কার্টুনে {item.packetPerCarton} টি)
+                      ({item.packetPerCarton} per carton)
                     </span>
                   </td>
                   <td className="py-4 px-6">
                     <div className="font-black text-sm text-primary">
-                      {item.totalPieces.toLocaleString()} পিস
+                      {item.totalPieces.toLocaleString()} Pcs
                     </div>
                     <span className="text-[10px] text-slate-500">
-                      (স্বয়ংক্রিয় কনভার্সন)
+                      (Auto Converted)
                     </span>
                   </td>
                   <td className="py-4 px-6 font-semibold text-slate-900">
-                    ৳ {item.unitPrice.toFixed(2)}
+                    ${item.unitPrice.toFixed(2)}
                   </td>
                   <td className="py-4 px-6">
                     {item.status === 'In Stock' && (
                       <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold">
-                        পর্যাপ্ত স্টক
+                        In Stock
                       </Badge>
                     )}
                     {item.status === 'Low Stock' && (
                       <Badge className="bg-red-100 text-red-800 border-red-300 font-semibold animate-pulse">
-                        লো-স্টক এলার্ট
+                        Low Stock Alert
                       </Badge>
                     )}
                     {item.status === 'Near Expiry' && (
                       <Badge className="bg-amber-100 text-amber-800 border-amber-300 font-semibold">
-                        FEFO প্রায় মেয়াদোত্তীর্ণ
+                        FEFO Near Expiry
                       </Badge>
                     )}
                   </td>
@@ -366,10 +366,10 @@ export const PharmacyDashboard: React.FC = () => {
               <span>Section 3.2 Counter Billing & Messaging</span>
             </div>
             <h3 className="text-lg font-bold text-slate-900">
-              কাউন্টার POS বিক্রয় ও ডিজিটাল ইনভয়েস হিস্ট্রি
+              Counter POS Sales & Digital Invoice History
             </h3>
             <p className="text-xs text-slate-500">
-              প্রতিটি বিক্রির পর সরাসরি কাস্টমারের WhatsApp-এ PDF ইনভয়েস অথবা SMS বিল সামারি পাঠানোর সুবিধা।
+              Instantly send digital PDF invoices via WhatsApp or SMS bill summaries after each sale.
             </p>
           </div>
           <Button
@@ -377,7 +377,7 @@ export const PharmacyDashboard: React.FC = () => {
             className="bg-secondary hover:bg-secondary-hover text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>নতুন কাউন্টার সেলস (POS)</span>
+            <span>New Counter Sale (POS)</span>
           </Button>
         </div>
 
@@ -385,13 +385,13 @@ export const PharmacyDashboard: React.FC = () => {
           <table className="w-full text-left text-xs text-slate-600">
             <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3.5 px-6">ইনভয়েস নং</th>
-                <th className="py-3.5 px-6">কাস্টমার ও মোবাইল</th>
-                <th className="py-3.5 px-6">মেম্বারশিপ</th>
-                <th className="py-3.5 px-6">প্রেসক্রিপশন</th>
-                <th className="py-3.5 px-6">আইটেম ও ডিসকাউন্ট</th>
-                <th className="py-3.5 px-6">মোট বিল</th>
-                <th className="py-3.5 px-6 text-center">ডিজিটাল ডেলিভারি অ্যাকশন</th>
+                <th className="py-3.5 px-6">Invoice No</th>
+                <th className="py-3.5 px-6">Customer & Phone</th>
+                <th className="py-3.5 px-6">Membership</th>
+                <th className="py-3.5 px-6">Prescription</th>
+                <th className="py-3.5 px-6">Items & Discount</th>
+                <th className="py-3.5 px-6">Total Bill</th>
+                <th className="py-3.5 px-6 text-center">Digital Delivery Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -408,31 +408,31 @@ export const PharmacyDashboard: React.FC = () => {
                   <td className="py-4 px-6">
                     {sale.isMember ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                        {sale.memberId} (১০% ছাড়)
+                        {sale.memberId} (10% Discount)
                       </span>
                     ) : (
-                      <span className="text-slate-400 text-[11px]">সাধারণ গ্রাহক</span>
+                      <span className="text-slate-400 text-[11px]">Regular Customer</span>
                     )}
                   </td>
                   <td className="py-4 px-6">
                     {sale.prescription ? (
                       <span className="text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200">
-                        সংযুক্ত আছে
+                        Attached
                       </span>
                     ) : (
-                      <span className="text-[11px] text-slate-400">ওটিসি / নেই</span>
+                      <span className="text-[11px] text-slate-400">OTC / None</span>
                     )}
                   </td>
                   <td className="py-4 px-6">
-                    <div className="font-semibold text-slate-800">{sale.itemsCount} টি মেডিসিন</div>
+                    <div className="font-semibold text-slate-800">{sale.itemsCount} Medicines</div>
                     {sale.discount > 0 && (
                       <div className="text-[11px] text-emerald-600 font-medium">
-                        -৳ {sale.discount} ছাড়
+                        -${sale.discount} Discount
                       </div>
                     )}
                   </td>
                   <td className="py-4 px-6">
-                    <div className="font-black text-sm text-slate-900">৳ {sale.totalAmount}</div>
+                    <div className="font-black text-sm text-slate-900">${sale.totalAmount}</div>
                     <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
                       {sale.status}
                     </span>
@@ -441,9 +441,9 @@ export const PharmacyDashboard: React.FC = () => {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() =>
-                          triggerToast(`WhatsApp PDF ইনভয়েস পাঠানো হয়েছে: ${sale.phone}`)
+                          triggerToast(`WhatsApp PDF invoice sent to: ${sale.phone}`)
                         }
-                        title="কাস্টমারের হোয়াটসঅ্যাপে PDF ইনভয়েস পাঠান"
+                        title="Send PDF Invoice to Customer WhatsApp"
                         className="p-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium"
                       >
                         <Send className="h-3.5 w-3.5 text-primary" />
@@ -451,17 +451,17 @@ export const PharmacyDashboard: React.FC = () => {
                       </button>
                       <button
                         onClick={() =>
-                          triggerToast(`SMS বিল সামারি সফলভাবে পাঠানো হয়েছে: ${sale.phone}`)
+                          triggerToast(`SMS bill summary sent to: ${sale.phone}`)
                         }
-                        title="SMS বিল সামারি পাঠান"
+                        title="Send SMS Bill Summary"
                         className="p-2 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-300 transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium"
                       >
                         <MessageSquare className="h-3.5 w-3.5 text-secondary" />
                         <span>SMS</span>
                       </button>
                       <button
-                        onClick={() => triggerToast(`রসিদ প্রিন্ট পাঠানো হয়েছে: ${sale.invoiceNo}`)}
-                        title="থার্মাল রসিদ প্রিন্ট করুন"
+                        onClick={() => triggerToast(`Receipt sent to printer: ${sale.invoiceNo}`)}
+                        title="Print Thermal Receipt"
                         className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
                       >
                         <Printer className="h-3.5 w-3.5" />
@@ -484,7 +484,7 @@ export const PharmacyDashboard: React.FC = () => {
                 <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                   <Pill className="h-4 w-4" />
                 </div>
-                <h4 className="font-bold text-slate-900 text-base">নতুন পিওএস কাউন্টার বিল তৈরি</h4>
+                <h4 className="font-bold text-slate-900 text-base">New POS Counter Sale</h4>
               </div>
               <button
                 onClick={() => setIsQuickSaleOpen(false)}
@@ -496,7 +496,7 @@ export const PharmacyDashboard: React.FC = () => {
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">কাস্টমার ফোন নম্বর</label>
+                <label className="font-semibold text-slate-700 block mb-1">Customer Phone Number</label>
                 <input
                   type="text"
                   placeholder="+88017XXXXXXXX"
@@ -506,7 +506,7 @@ export const PharmacyDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">মেম্বার আইডি (ঐচ্ছিক - ১০% অটো ছাড়)</label>
+                <label className="font-semibold text-slate-700 block mb-1">Membership ID (Optional - 10% Auto Discount)</label>
                 <input
                   type="text"
                   placeholder="e.g. MEM-881"
@@ -516,23 +516,23 @@ export const PharmacyDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">ওষুধ সিলেক্ট করুন</label>
+                <label className="font-semibold text-slate-700 block mb-1">Select Medicines</label>
                 <div className="p-3 bg-slate-50 rounded-xl space-y-1.5 border border-slate-200">
                   <div className="flex justify-between font-semibold text-slate-800">
-                    <span>Napa Extra 500mg (২ পাতা / ২০ পিস)</span>
-                    <span>৳ ৭০.০০</span>
+                    <span>Napa Extra 500mg (2 Strips / 20 Pcs)</span>
+                    <span>$70.00</span>
                   </div>
                   <div className="flex justify-between font-semibold text-slate-800">
-                    <span>Seclo 20mg Capsule (১ পাতা / ১০ ক্যাপসুল)</span>
-                    <span>৳ ৬০.০০</span>
+                    <span>Seclo 20mg Capsule (1 Strip / 10 Caps)</span>
+                    <span>$60.00</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex justify-between font-bold text-primary">
-                    <span>মেম্বারশিপ ছাড় (১০%)</span>
-                    <span>-৳ ১৩.০০</span>
+                    <span>Membership Discount (10%)</span>
+                    <span>-$13.00</span>
                   </div>
                   <div className="pt-1 flex justify-between font-black text-sm text-slate-900">
-                    <span>সর্বমোট প্রদেয়</span>
-                    <span>৳ ১১৭.০০</span>
+                    <span>Grand Total Payable</span>
+                    <span>$117.00</span>
                   </div>
                 </div>
               </div>
@@ -544,16 +544,16 @@ export const PharmacyDashboard: React.FC = () => {
                 onClick={() => setIsQuickSaleOpen(false)}
                 className="flex-1 rounded-xl text-xs h-10 cursor-pointer"
               >
-                বাতিল করুন
+                Cancel
               </Button>
               <Button
                 onClick={() => {
                   setIsQuickSaleOpen(false);
-                  triggerToast('বিক্রি সম্পন্ন হয়েছে এবং কাস্টমারের WhatsApp-এ PDF পাঠানো হয়েছে!');
+                  triggerToast('Sale completed successfully! WhatsApp PDF invoice sent to customer.');
                 }}
                 className="flex-1 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold h-10 cursor-pointer shadow-md shadow-primary/25"
               >
-                বিল সম্পন্ন ও WhatsApp সেন্ড
+                Complete Sale & Send WhatsApp
               </Button>
             </div>
           </div>

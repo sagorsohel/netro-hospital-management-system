@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { login } from '../store/slices/authSlice';
+import React, { useState } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { loginSuccess } from "../store/slices/authSlice";
 import {
   Activity,
   ShieldCheck,
@@ -11,62 +11,82 @@ import {
   Pill,
   Building2,
   CheckCircle2,
-  Sparkles
-} from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+  Sparkles,
+  AlertCircle,
+} from "lucide-react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+
+import { useLoginMutation } from '../store/api/authApi';
 
 export const LoginView: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const [loginMutation, { isLoading: isLoginLoading }] = useLoginMutation();
 
-  const [email, setEmail] = useState('admin@netrohospital.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('admin@netro.com');
+  const [password, setPassword] = useState('12345678');
   const [rememberMe, setRememberMe] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const isLoading = isLoginLoading;
+
 
   // If already authenticated, redirect to /dashboard
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
+  const performLogin = async (loginEmail: string, loginPass: string) => {
+    setError('');
+
+    try {
+      const data = await loginMutation({
+        email: loginEmail.trim(),
+        password: loginPass,
+      }).unwrap();
+
+      if (!data.success || !data.token) {
+        throw new Error(data.message || 'Invalid email or password.');
+      }
+
+      dispatch(
+        loginSuccess({
+          user: data.user,
+          token: data.token,
+        })
+      );
+
+      navigate('/dashboard');
+    } catch (err: any) {
+      const message =
+        err?.data?.message ||
+        err?.message ||
+        'Failed to connect to backend server. Make sure port 5001 is active.';
+      setError(message);
+    }
+  };
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setError('Please enter your email or username');
+      setError("Please enter your email or username");
       return;
     }
-    setError('');
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      dispatch(
-        login({
-          email,
-          name: 'Dr. Sohel Sagor',
-          role: 'Hospital Director',
-        })
-      );
-      navigate('/dashboard');
-    }, 400);
+    performLogin(email, password);
   };
 
-  const handleQuickDemo = (role: 'Super Admin' | 'Hospital Director') => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      dispatch(
-        login({
-          email: role === 'Super Admin' ? 'admin@netrohospital.com' : 'director@netrohospital.com',
-          name: 'Dr. Sohel Sagor',
-          role,
-        })
-      );
-      navigate('/dashboard');
-    }, 300);
+  const handleQuickDemo = (role: "admin" | "pharmacist") => {
+    if (role === "admin") {
+      setEmail("admin@netro.com");
+      setPassword("12345678");
+      performLogin("admin@netro.com", "12345678");
+    } else {
+      setEmail("pharmarcy@netro.com");
+      setPassword("12345678");
+      performLogin("pharmarcy@netro.com", "12345678");
+    }
   };
 
   return (
@@ -86,63 +106,65 @@ export const LoginView: React.FC = () => {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xl font-black tracking-tight text-white">NETRO</span>
+                  <span className="text-xl font-black tracking-tight text-white">
+                    NETRO
+                  </span>
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-primary/30 text-emerald-300 border border-primary/50">
                     SUITE
                   </span>
                 </div>
-                <p className="text-xs text-slate-400">Hospital Management Ecosystem</p>
+                <p className="text-xs text-slate-400">
+                  Hospital Management Ecosystem
+                </p>
               </div>
             </div>
 
             {/* Headline */}
             <div className="space-y-2 pt-2">
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-snug">
-                Integrated Healthcare Administration
+                Unified Healthcare & Clinical Operating System
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Complete digital management system for clinical records, diagnostics, patient care, and hospital operations.
+                Connect patient diagnostic billing, doctors schedule queue, IPD
+                admission, and high-speed pharmacy counter sales.
               </p>
             </div>
 
-            {/* Feature Bullets */}
+            {/* Proposal Alignment Highlights */}
             <div className="space-y-3 pt-3">
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <Building2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                <Building2 className="h-5 w-5 text-secondary shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Core Hospital HMS</h4>
+                  <h4 className="text-xs font-semibold text-white">
+                    Core Hospital Management (HMS)
+                  </h4>
                   <p className="text-[11px] text-slate-300">
-                    Patient profiles, barcoded diagnostic labs, IPD admissions & running billing.
+                    Patient digital health profile, barcode test billing, and
+                    IPD bed charges.
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <Pill className="h-5 w-5 text-sky-400 shrink-0 mt-0.5" />
+                <Pill className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Doctor Serials & Queue</h4>
+                  <h4 className="text-xs font-semibold text-white">
+                    Pharmacy POS & Multi-Unit Stock
+                  </h4>
                   <p className="text-[11px] text-slate-300">
-                    Automated appointment booking, chamber queues, and SMS confirmations.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <ShieldCheck className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-semibold text-white">Super Admin Governance</h4>
-                  <p className="text-[11px] text-slate-300">
-                    Granular role-based permissions, financial audits & unified reports.
+                    Carton ➔ strip ➔ piece conversion, FEFO expiry alerts &
+                    WhatsApp receipts.
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Left Footer Badges */}
+          {/* Left Footer */}
           <div className="pt-6 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> 256-Bit SSL Encrypted
+              <CheckCircle2 className="h-3.5 w-3.5 text-primary" /> Neon DB +
+              Drizzle Connected
             </span>
             <span className="text-slate-500">v1.0.0 Stable</span>
           </div>
@@ -151,38 +173,38 @@ export const LoginView: React.FC = () => {
         {/* Right Side: Login Form */}
         <div className="lg:col-span-7 p-8 sm:p-12 flex flex-col justify-center bg-white">
           <div className="max-w-md w-full mx-auto space-y-7">
-            {/* Form Header */}
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-primary border border-primary/20 mb-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20 mb-3">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span>Sign in to System</span>
+                <span>Backend JWT Authentication</span>
               </div>
               <h3 className="text-2xl font-bold tracking-tight text-slate-900">
-                Hospital Admin Portal
+                Sign in to Netro HMS
               </h3>
               <p className="text-sm text-slate-500 mt-1">
-                Enter your authorized username or email to access your workspace.
+                Enter your credentials to access the central healthcare
+                dashboard.
               </p>
             </div>
 
             {error && (
-              <div className="p-3 text-xs bg-red-50 border border-red-200 text-red-700 rounded-xl">
-                {error}
+              <div className="p-3.5 text-xs bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
 
-            {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Mail className="h-3.5 w-3.5 text-slate-400" />
-                  Email or Username
+                  Email Address
                 </label>
                 <Input
-                  type="text"
+                  type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@netrohospital.com"
+                  placeholder="admin@netro.com"
                   className="h-11 rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 text-sm"
                   required
                 />
@@ -198,7 +220,9 @@ export const LoginView: React.FC = () => {
                     href="#forgot"
                     onClick={(e) => {
                       e.preventDefault();
-                      alert('Please contact your hospital system administrator to reset your password.');
+                      alert(
+                        "Default passwords: admin@netro.com (12345678) / pharmarcy@netro.com (12345678)",
+                      );
                     }}
                     className="text-xs text-secondary hover:underline font-medium"
                   >
@@ -248,24 +272,24 @@ export const LoginView: React.FC = () => {
             {/* Quick Demo Access Bar */}
             <div className="pt-4 border-t border-slate-100">
               <div className="text-center text-xs text-slate-400 mb-3 font-medium">
-                — Or sign in with 1-click demo —
+                — Or 1-Click Login with Verified Accounts —
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => handleQuickDemo('Super Admin')}
+                  onClick={() => handleQuickDemo("admin")}
                   className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-primary/40 text-slate-700 hover:text-primary transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Building2 className="h-4 w-4 text-primary" />
-                  <span>Super Admin Demo</span>
+                  <span>Admin (admin@netro.com)</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickDemo('Hospital Director')}
+                  onClick={() => handleQuickDemo("pharmacist")}
                   className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-secondary/40 text-slate-700 hover:text-secondary transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShieldCheck className="h-4 w-4 text-secondary" />
-                  <span>Director Demo</span>
+                  <span>Pharmacy (pharmarcy@netro.com)</span>
                 </button>
               </div>
             </div>

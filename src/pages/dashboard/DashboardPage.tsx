@@ -6,6 +6,7 @@ import {
   Receipt,
   UserCheck,
   TrendingUp,
+  TrendingDown,
   MoreHorizontal,
   ChevronDown,
   ChevronLeft,
@@ -18,13 +19,18 @@ import {
   Activity,
   Building2,
 } from 'lucide-react';
+import { useGetExpenseStatsQuery } from '../../store/api/expenseApi';
 
 export const DashboardPage: React.FC = () => {
   const [revenueTab, setRevenueTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [patientTab, setPatientTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [selectedDate, setSelectedDate] = useState(19);
 
-  // 1. KPI Stats Cards Data (from screenshot)
+  // Fetch real-time Expense Statistics for financial reporting
+  const { data: expenseStatsData } = useGetExpenseStatsQuery();
+  const expenseStats = expenseStatsData?.stats;
+
+  // 1. KPI Stats Cards Data (with live Financial Outlay integration)
   const stats = [
     {
       id: 'patients',
@@ -43,12 +49,15 @@ export const DashboardPage: React.FC = () => {
       icon: Calendar,
     },
     {
-      id: 'invoices',
-      title: 'Invoices',
-      value: '347',
-      trend: '+1.5%',
-      subtitle: '20 more than yesterday',
+      id: 'expenses',
+      title: 'Hospital Expenses',
+      value: expenseStats
+        ? `৳${Number(expenseStats.totalThisMonth || expenseStats.totalOverall || 0).toLocaleString()}`
+        : '৳0',
+      trend: `${expenseStats?.countThisMonth || expenseStats?.countOverall || 0} Vouchers`,
+      subtitle: 'Recorded this month',
       icon: Receipt,
+      link: '/expenses',
     },
     {
       id: 'staff',
@@ -197,13 +206,21 @@ export const DashboardPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/expenses"
+            className="h-10 px-3.5 rounded-xl border border-slate-200 hover:border-primary/40 bg-white hover:bg-emerald-50 text-slate-700 hover:text-primary text-xs font-semibold flex items-center gap-2 cursor-pointer transition-all"
+          >
+            <Receipt className="h-4 w-4 text-primary" />
+            <span>Expenses</span>
+          </Link>
+
           <Link
             to="/departments"
             className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white shadow-sm shadow-primary/25 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Building2 className="h-4 w-4 text-white" />
-            <span>Manage Departments</span>
+            <span>Departments</span>
           </Link>
         </div>
       </div>
@@ -213,9 +230,10 @@ export const DashboardPage: React.FC = () => {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div
+            <Link
               key={stat.id}
-              className="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between"
+              to={stat.link || '#'}
+              className="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between hover:border-primary/40 transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
@@ -244,7 +262,7 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               <p className="text-[11px] text-slate-400 mt-1.5">{stat.subtitle}</p>
-            </div>
+            </Link>
           );
         })}
       </div>

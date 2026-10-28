@@ -7,6 +7,8 @@ import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { DepartmentPage } from './pages/department/DepartmentPage';
 import { DoctorsPage } from './pages/doctors/DoctorsPage';
 import { DoctorFormPage } from './pages/doctors/DoctorFormPage';
+import { ExpensesPage } from './pages/expenses/ExpensesPage';
+import { ExpenseFormPage } from './pages/expenses/ExpenseFormPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -36,6 +38,9 @@ export const App: React.FC = () => {
           <Route path="/doctors" element={<DoctorsPage />} />
           <Route path="/doctors/new" element={<DoctorFormPage />} />
           <Route path="/doctors/edit/:id" element={<DoctorFormPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/expenses/new" element={<ExpenseFormPage />} />
+          <Route path="/expenses/edit/:id" element={<ExpenseFormPage />} />
         </Route>
 
         {/* Fallback route */}

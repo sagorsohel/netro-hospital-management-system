@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useAppDispatch } from '../store/hooks';
+import { useNavigate, Navigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login } from '../store/slices/authSlice';
 import {
   Activity,
@@ -17,11 +18,19 @@ import { Input } from './ui/input';
 
 export const LoginView: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
   const [email, setEmail] = useState('admin@netrohospital.com');
   const [password, setPassword] = useState('password123');
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // If already authenticated, redirect to /dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +50,7 @@ export const LoginView: React.FC = () => {
           role: 'Hospital Director',
         })
       );
+      navigate('/dashboard');
     }, 400);
   };
 
@@ -55,6 +65,7 @@ export const LoginView: React.FC = () => {
           role: role === 'Super Admin' ? 'Hospital Director' : 'Pharmacist',
         })
       );
+      navigate('/dashboard');
     }, 300);
   };
 

@@ -1,34 +1,39 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppSelector } from './store/hooks';
 import { LoginView } from './components/LoginView';
-import { ModuleSelector } from './components/ModuleSelector';
 import { HospitalLayout } from './components/hospital/HospitalLayout';
-import { PharmacyLayout } from './components/pharmacy/PharmacyLayout';
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
 
 export const App: React.FC = () => {
-  const { isAuthenticated, activeModule } = useAppSelector((state) => state.auth);
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* / route: Login Page */}
+        <Route path="/" element={<LoginView />} />
 
-  // 1. If not authenticated, always show the login portal
-  if (!isAuthenticated) {
-    return <LoginView />;
-  }
+        {/* /dashboard route: Protected Hospital Management Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <HospitalLayout />
+            </ProtectedRoute>
+          }
+        />
 
-  // 2. If logged in but hasn't picked a workspace (or chose to switch), show Module Selection Gateway
-  if (activeModule === 'selection' || !activeModule) {
-    return <ModuleSelector />;
-  }
-
-  // 3. Core Hospital Management Workspace
-  if (activeModule === 'hospital') {
-    return <HospitalLayout />;
-  }
-
-  // 4. Pharmacy Management & POS Workspace
-  if (activeModule === 'pharmacy') {
-    return <PharmacyLayout />;
-  }
-
-  return <ModuleSelector />;
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 };
 
 export default App;

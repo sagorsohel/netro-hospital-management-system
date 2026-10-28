@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Plus, Building2, Pill, ArrowLeftRight, LogOut } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +12,7 @@ interface HospitalHeaderProps {
 
 export const HospitalHeader: React.FC<HospitalHeaderProps> = ({ onOpenModal }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
   return (
@@ -73,7 +75,10 @@ export const HospitalHeader: React.FC<HospitalHeaderProps> = ({ onOpenModal }) =
             className="h-8 w-8 rounded-full object-cover ring-2 ring-secondary/30"
           />
           <button
-            onClick={() => dispatch(logout())}
+            onClick={() => {
+              dispatch(logout());
+              navigate('/');
+            }}
             title="লগআউট"
             className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 cursor-pointer transition-colors"
           >

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setActiveModule, logout } from '../../store/slices/authSlice';
 import {
@@ -27,6 +28,7 @@ interface HospitalSidebarProps {
 
 export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, setCurrentTab }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
   const menuItems = [
@@ -124,7 +126,10 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
             <span className="text-[11px] text-slate-300 font-medium">Core HMS Live</span>
           </div>
           <button
-            onClick={() => dispatch(logout())}
+            onClick={() => {
+              dispatch(logout());
+              navigate('/');
+            }}
             title="Logout"
             className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
           >

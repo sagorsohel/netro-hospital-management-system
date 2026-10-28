@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { setActiveModule, logout } from '../../store/slices/authSlice';
+import { logout } from '../../store/slices/authSlice';
 import {
   LayoutDashboard,
   UserRoundCheck,
@@ -15,9 +15,6 @@ import {
   Wrench,
   PieChart,
   LogOut,
-  Pill,
-  Activity,
-  ArrowLeftRight,
   ShieldCheck
 } from 'lucide-react';
 
@@ -47,7 +44,7 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
   return (
     <aside className="w-68 bg-dark text-white flex flex-col h-screen sticky top-0 border-r border-slate-800 shrink-0 select-none overflow-hidden z-20">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between shrink-0">
+      <div className="p-4 px-5 border-b border-slate-800 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-secondary flex items-center justify-center shadow-lg shadow-secondary/40">
             <Building2 className="h-5 w-5 text-white" />
@@ -61,29 +58,11 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
         </div>
       </div>
 
-      {/* Module Switcher Quick Bar */}
-      <div className="p-3 bg-slate-900/90 border-b border-slate-800 space-y-2 shrink-0">
-        <button
-          onClick={() => dispatch(setActiveModule('pharmacy'))}
-          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-primary/20 hover:bg-primary/30 text-emerald-300 border border-primary/40 text-xs font-semibold transition-all cursor-pointer group"
-        >
-          <div className="flex items-center gap-2">
-            <Pill className="h-4 w-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span>Switch to Pharmacy POS</span>
-          </div>
-          <ArrowLeftRight className="h-3 w-3 text-emerald-400 opacity-70 group-hover:opacity-100" />
-        </button>
-
-        <button
-          onClick={() => dispatch(setActiveModule('selection'))}
-          className="w-full text-center text-[11px] text-slate-400 hover:text-white transition-colors py-0.5 cursor-pointer"
-        >
-          ← Change Workspace
-        </button>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {/* Navigation - Ultra Clean & No Scrollbar */}
+      <nav
+        className="flex-1 px-3 py-3 space-y-1 overflow-y-auto no-scrollbar"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
           Hospital Navigation
         </div>
@@ -94,7 +73,7 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
             <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 isActive
                   ? 'bg-secondary text-white shadow-md shadow-secondary/30 font-semibold'
                   : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
@@ -130,18 +109,18 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
               dispatch(logout());
               navigate('/');
             }}
-            title="Logout"
+            title="Logout / লগআউট"
             className="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer transition-colors"
           >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-800">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800">
           <img
             src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
             alt="User"
-            className="h-7 w-7 rounded-full object-cover ring-1 ring-secondary"
+            className="h-8 w-8 rounded-full object-cover ring-1 ring-secondary"
           />
           <div className="text-left overflow-hidden">
             <div className="text-xs font-semibold text-white truncate flex items-center gap-1">

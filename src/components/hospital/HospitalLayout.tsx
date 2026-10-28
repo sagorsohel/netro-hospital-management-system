@@ -20,7 +20,10 @@ export const HospitalLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <HospitalHeader onOpenModal={() => setIsModalOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8">
+        <main
+          className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-8 no-scrollbar"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-secondary via-secondary-hover to-slate-900 rounded-2xl p-7 text-white shadow-lg shadow-secondary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>

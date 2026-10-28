@@ -232,43 +232,37 @@ export const DepartmentsView: React.FC = () => {
           {departmentsList.map((dept) => (
             <div
               key={dept.id}
-              className="bg-white rounded-3xl overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-slate-200 transition-all duration-300 group"
+              className="bg-white rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] hover:border-slate-200 transition-all duration-300 group"
             >
-              {/* Card Image Banner */}
-              <div className="relative h-36 w-full bg-gradient-to-tr from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
-                {dept.image ? (
-                  <img
-                    src={dept.image}
-                    alt={dept.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-emerald-950 via-slate-900 to-primary/30">
-                    <Building2 className="h-10 w-10 text-white/20" />
-                  </div>
-                )}
+              {/* Top Row: Icon/Image + Status Badge (NO BANNER) */}
+              <div className="flex items-start justify-between gap-3">
+                {/* Department Icon or Image Badge */}
+                <div className="h-13 w-13 rounded-2xl bg-[#EAF8F0] border border-emerald-100/80 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
+                  {dept.image ? (
+                    <img
+                      src={dept.image}
+                      alt={dept.name}
+                      className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    renderDepartmentIcon(dept.icon)
+                  )}
+                </div>
 
                 {/* Status Pill Badge */}
-                <div className="absolute top-3 right-3">
-                  <span
-                    className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold backdrop-blur-md ${
-                      dept.status === 'Active'
-                        ? 'bg-emerald-500/90 text-white shadow-xs'
-                        : 'bg-slate-800/80 text-slate-300'
-                    }`}
-                  >
-                    {dept.status}
-                  </span>
-                </div>
-
-                {/* Floating Department Icon Badge */}
-                <div className="absolute -bottom-4 left-4 h-11 w-11 rounded-2xl bg-white shadow-md border border-slate-100 flex items-center justify-center">
-                  {renderDepartmentIcon(dept.icon)}
-                </div>
+                <span
+                  className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${
+                    dept.status === 'Active'
+                      ? 'bg-emerald-50 text-primary border border-emerald-200/60'
+                      : 'bg-slate-100 text-slate-500 border border-slate-200'
+                  }`}
+                >
+                  {dept.status}
+                </span>
               </div>
 
               {/* Card Body */}
-              <div className="p-5 pt-6 space-y-3 flex-1 flex flex-col justify-between">
+              <div className="pt-3.5 space-y-3 flex-1 flex flex-col justify-between">
                 <div>
                   <h3 className="text-base font-black tracking-tight text-dark group-hover:text-primary transition-colors">
                     {dept.name}
@@ -278,6 +272,7 @@ export const DepartmentsView: React.FC = () => {
                     {dept.description || 'Specialized clinical care unit and diagnostic laboratories.'}
                   </p>
                 </div>
+
 
                 {/* Metadata Info Rows */}
                 <div className="pt-2 border-t border-slate-100/80 space-y-2 text-[11px] text-slate-500">

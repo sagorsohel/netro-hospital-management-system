@@ -25,7 +25,13 @@ import {
 } from '../../store/api/departmentApi';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
-import { Select } from '../ui/select';
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Button } from '../ui/button';
 
@@ -69,7 +75,7 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
   const [contactPhone, setContactPhone] = useState('');
   const [status, setStatus] = useState<'Active' | 'Inactive'>('Active');
   const [selectedIcon, setSelectedIcon] = useState('Stethoscope');
-  const [imageUrl, setImageUrl] = useState('');
+  const [iconImageUrl, setIconImageUrl] = useState('');
   const [error, setError] = useState('');
   const [uploadNotice, setUploadNotice] = useState('');
 
@@ -84,7 +90,7 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
       setContactPhone(department.contactPhone || '');
       setStatus(department.status || 'Active');
       setSelectedIcon(department.icon || 'Stethoscope');
-      setImageUrl(department.image || '');
+      setIconImageUrl(department.image || '');
     } else {
       setName('');
       setDescription('');
@@ -95,7 +101,7 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
       setContactPhone('');
       setStatus('Active');
       setSelectedIcon('Stethoscope');
-      setImageUrl('');
+      setIconImageUrl('');
     }
     setError('');
     setUploadNotice('');
@@ -108,17 +114,17 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
     if (!file) return;
 
     setError('');
-    setUploadNotice('Uploading image to Cloudinary...');
+    setUploadNotice('Uploading icon to Cloudinary...');
 
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('folder', 'netro-hospital/departments');
+      formData.append('folder', 'netro-hospital/department-icons');
 
       const response = await uploadImage(formData).unwrap();
       if (response.success && response.url) {
-        setImageUrl(response.url);
-        setUploadNotice('✅ Uploaded to Cloudinary successfully!');
+        setIconImageUrl(response.url);
+        setUploadNotice('✅ Icon image uploaded to Cloudinary successfully!');
       } else {
         throw new Error(response.message || 'Upload failed');
       }
@@ -126,7 +132,7 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
       const msg =
         err?.data?.message ||
         err?.message ||
-        'Cloudinary upload failed. Please verify CLOUDINARY credentials in netro-backend/.env';
+        'Cloudinary upload failed. Check your .env Cloudinary configuration.';
       setError(msg);
       setUploadNotice('');
     }
@@ -151,7 +157,7 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
       contactPhone: contactPhone.trim(),
       status,
       icon: selectedIcon,
-      image: imageUrl.trim() || undefined,
+      image: iconImageUrl.trim() || undefined,
     };
 
     try {
@@ -175,6 +181,10 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
 
   const isSaving = isCreating || isUpdating;
 
+  // Selected preset icon component helper
+  const CurrentPresetIcon =
+    PRESET_ICONS.find((i) => i.name === selectedIcon)?.icon || Stethoscope;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in font-sans">
       <div className="w-full max-w-2xl max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-scale-up">
@@ -186,8 +196,8 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               {isEditing
-                ? 'Update clinical specialization, doctor leads, and facilities.'
-                : 'Configure department profile, Cloudinary banner, and location.'}
+                ? 'Update clinical specialization, doctor leads, and icon.'
+                : 'Configure department profile, Cloudinary icon, and location.'}
             </p>
           </div>
           <button
@@ -241,12 +251,16 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
             <div className="space-y-1.5">
               <Label htmlFor="dept-status">Status</Label>
               <Select
-                id="dept-status"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
+                onValueChange={(val) => setStatus(val as 'Active' | 'Inactive')}
               >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <SelectTrigger id="dept-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
               </Select>
             </div>
           </div>
@@ -325,52 +339,30 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
             </div>
           </div>
 
-          {/* Icon Selector */}
-          <div className="space-y-2">
-            <Label>Choose Department Icon</Label>
-            <div className="flex flex-wrap gap-2">
-              {PRESET_ICONS.map((item) => {
-                const IconComponent = item.icon;
-                const isSelected = selectedIcon === item.name;
-                return (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => setSelectedIcon(item.name)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80'
-                    }`}
-                  >
-                    <IconComponent className="h-3.5 w-3.5" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Cloudinary Image & Banner Upload */}
-          <div className="space-y-2 border-t border-slate-100 pt-3">
+          {/* Icon or Image Upload (NOT BANNER) */}
+          <div className="space-y-3 border-t border-slate-100 pt-3">
             <div className="flex items-center justify-between">
-              <Label htmlFor="dept-image">Department Banner / Image (Cloudinary)</Label>
+              <Label htmlFor="dept-icon-upload">
+                Department Icon / Image (Cloudinary)
+              </Label>
               <span className="text-[10px] text-slate-400 font-normal">
-                Supported: PNG, JPG, WebP
+                Upload image/icon or choose preset
               </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              {/* Image Preview Box */}
-              <div className="h-20 w-32 rounded-2xl bg-slate-100 border border-slate-200/80 overflow-hidden flex items-center justify-center shrink-0 relative shadow-2xs">
-                {imageUrl ? (
+            <div className="flex items-center gap-4 p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100">
+              {/* Square Icon/Image Preview */}
+              <div className="h-16 w-16 rounded-2xl bg-white border border-slate-200/90 shadow-xs overflow-hidden flex items-center justify-center shrink-0 relative">
+                {iconImageUrl ? (
                   <img
-                    src={imageUrl}
-                    alt="Preview"
+                    src={iconImageUrl}
+                    alt="Department Icon"
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <ImageIcon className="h-6 w-6 text-slate-300" />
+                  <div className="h-full w-full bg-[#EAF8F0] text-primary flex items-center justify-center">
+                    <CurrentPresetIcon className="h-8 w-8 stroke-[2]" />
+                  </div>
                 )}
                 {isUploading && (
                   <div className="absolute inset-0 bg-slate-950/60 flex items-center justify-center">
@@ -379,32 +371,75 @@ export const DepartmentModal: React.FC<DepartmentModalProps> = ({
                 )}
               </div>
 
-              {/* Upload Input & URL fallback */}
-              <div className="flex-1 w-full space-y-2">
-                <label className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-dashed border-primary/50 bg-[#EAF8F0]/50 hover:bg-[#EAF8F0] text-primary text-xs font-bold cursor-pointer transition-colors">
-                  <Upload className="h-4 w-4" />
-                  <span>
-                    {isUploading
-                      ? 'Uploading to Cloudinary...'
-                      : 'Upload Image to Cloudinary'}
-                  </span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    className="hidden"
-                  />
-                </label>
+              {/* Upload Button & URL field */}
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center gap-2 h-9 px-3.5 rounded-xl border border-dashed border-primary/60 bg-[#EAF8F0]/60 hover:bg-[#EAF8F0] text-primary text-xs font-bold cursor-pointer transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    <span>
+                      {isUploading
+                        ? 'Uploading...'
+                        : 'Upload Icon / Image to Cloudinary'}
+                    </span>
+                    <input
+                      id="dept-icon-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {iconImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setIconImageUrl('')}
+                      className="text-xs text-slate-400 hover:text-accent font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Clear Image
+                    </button>
+                  )}
+                </div>
 
                 <Input
-                  id="dept-image"
                   type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Or paste direct Cloudinary / Image URL..."
-                  className="h-9 text-xs"
+                  value={iconImageUrl}
+                  onChange={(e) => setIconImageUrl(e.target.value)}
+                  placeholder="Or paste direct Cloudinary icon/image URL..."
+                  className="h-8 text-xs"
                 />
+              </div>
+            </div>
+
+            {/* Preset Icon Selector Pills */}
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[11px] font-semibold text-slate-500">
+                Or select from medical preset icons:
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {PRESET_ICONS.map((item) => {
+                  const IconComponent = item.icon;
+                  const isSelected = selectedIcon === item.name && !iconImageUrl;
+                  return (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedIcon(item.name);
+                        setIconImageUrl(''); // reset custom image so preset is used
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-primary text-white shadow-xs'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/80'
+                      }`}
+                    >
+                      <IconComponent className="h-3.5 w-3.5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

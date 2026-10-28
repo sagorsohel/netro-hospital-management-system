@@ -537,23 +537,34 @@ export const ExpensesPage: React.FC = () => {
                       </span>
                     </td>
 
-                    {/* Attached Bill Voucher Photo */}
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    {/* Attached Bill Voucher Photo - Small Thumbnail Preview */}
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
                       {exp.billCopy ? (
                         <div
                           onClick={() => {
                             setViewingBillUrl(exp.billCopy as string);
-                            setViewingBillTitle(exp.voucherNo ? `${exp.voucherNo} - ${exp.title}` : exp.title);
+                            setViewingBillTitle(
+                              exp.voucherNo ? `${exp.voucherNo} - ${exp.title}` : exp.title
+                            );
                           }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[11px] font-semibold cursor-pointer transition-colors shadow-2xs group/btn"
+                          className="inline-flex items-center justify-center cursor-pointer group/thumb relative"
                           title="Click to view full voucher receipt scan"
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>View Bill</span>
+                          <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 shadow-2xs group-hover/thumb:border-primary group-hover/thumb:shadow-md transition-all">
+                            <img
+                              src={exp.billCopy}
+                              alt="Voucher Receipt"
+                              className="h-full w-full object-cover group-hover/thumb:scale-110 transition-transform duration-200"
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition-opacity text-white">
+                            <Eye className="h-4 w-4" />
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 font-medium italic">
-                          No Attached Bill
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-400 text-[10px] font-medium border border-slate-200/60">
+                          <FileText className="h-3 w-3" />
+                          No Bill
                         </span>
                       )}
                     </td>
@@ -615,8 +626,14 @@ export const ExpensesPage: React.FC = () => {
 
       {/* 6. Attached Bill Copy Modal Viewer */}
       {viewingBillUrl && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div
+          onClick={() => setViewingBillUrl(null)}
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+          >
             {/* Modal Header */}
             <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -646,9 +663,15 @@ export const ExpensesPage: React.FC = () => {
 
             {/* Modal Footer */}
             <div className="p-3.5 px-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-[11px] text-slate-400">
-                Audited copy on Cloudinary CDN
-              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingBillUrl(null)}
+                className="text-xs"
+              >
+                Close
+              </Button>
               <div className="flex items-center gap-2">
                 <a
                   href={viewingBillUrl}

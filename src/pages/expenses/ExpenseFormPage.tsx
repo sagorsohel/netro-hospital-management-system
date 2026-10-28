@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   Receipt,
@@ -16,119 +16,138 @@ import {
   Eye,
   X,
   FileCheck2,
-} from "lucide-react";
+  RefreshCw,
+} from 'lucide-react';
 import {
   useGetExpenseByIdQuery,
   useCreateExpenseMutation,
   useUpdateExpenseMutation,
   useUploadBillCopyMutation,
-} from "../../store/api/expenseApi";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Textarea } from "../../components/ui/textarea";
-import { Button } from "../../components/ui/button";
+} from '../../store/api/expenseApi';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Button } from '../../components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../components/ui/select";
+} from '../../components/ui/select';
 
 export const EXPENSE_CATEGORIES = [
-  "Utility Bills (Electricity, Water, Gas)",
-  "Medical Equipment & Tools",
-  "Facility & Lift Maintenance",
-  "Diagnostic & Lab Reagents",
-  "Office Supplies & Stationery",
-  "Generator & Ambulance Fuel",
-  "Cleaning & Waste Disposal",
-  "Staff Refreshments & Canteen",
-  "Emergency & Miscellaneous",
+  'Utility Bills (Electricity, Water, Gas)',
+  'Medical Equipment & Tools',
+  'Facility & Lift Maintenance',
+  'Diagnostic & Lab Reagents',
+  'Office Supplies & Stationery',
+  'Generator & Ambulance Fuel',
+  'Cleaning & Waste Disposal',
+  'Staff Refreshments & Canteen',
+  'Emergency & Miscellaneous',
 ];
 
 const PAYMENT_METHODS = [
-  "Cash",
-  "Bank Transfer",
-  "Cheque",
-  "Mobile Banking (bKash/Nagad)",
+  'Cash',
+  'Bank Transfer',
+  'Cheque',
+  'Mobile Banking (bKash/Nagad)',
 ];
 
 export const ExpenseFormPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // APIs
-  const { data: expenseData, isLoading: isLoadingExpense } =
-    useGetExpenseByIdQuery(id as string, { skip: !isEditing });
+  const { data: expenseData, isLoading: isLoadingExpense } = useGetExpenseByIdQuery(
+    id as string,
+    { skip: !isEditing }
+  );
   const [createExpense, { isLoading: isCreating }] = useCreateExpenseMutation();
   const [updateExpense, { isLoading: isUpdating }] = useUpdateExpenseMutation();
   const [uploadBill, { isLoading: isUploading }] = useUploadBillCopyMutation();
 
   // Form States
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [amount, setAmount] = useState("");
-  const [purpose, setPurpose] = useState("");
+  const [amount, setAmount] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
-  const [billCopy, setBillCopy] = useState("");
-  const [voucherNo, setVoucherNo] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("Cash");
-  const [paidTo, setPaidTo] = useState("");
-  const [status, setStatus] = useState<"Paid" | "Pending" | "Approved">("Paid");
-  const [error, setError] = useState("");
-  const [uploadNotice, setUploadNotice] = useState("");
+  const [billCopy, setBillCopy] = useState('');
+  const [localPreview, setLocalPreview] = useState('');
+  const [voucherNo, setVoucherNo] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [paidTo, setPaidTo] = useState('');
+  const [status, setStatus] = useState<'Paid' | 'Pending' | 'Approved'>('Paid');
+  const [error, setError] = useState('');
+  const [uploadNotice, setUploadNotice] = useState('');
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
   // Prefill when editing
   useEffect(() => {
     if (isEditing && expenseData?.data) {
       const exp = expenseData.data;
-      setTitle(exp.title || "");
-      setDescription(exp.description || "");
+      setTitle(exp.title || '');
+      setDescription(exp.description || '');
       setDate(exp.date || new Date().toISOString().slice(0, 10));
-      setAmount(exp.amount ? String(exp.amount) : "");
-      setPurpose(exp.purpose || "");
+      setAmount(exp.amount ? String(exp.amount) : '');
+      setPurpose(exp.purpose || '');
       setCategory(exp.category || EXPENSE_CATEGORIES[0]);
-      setBillCopy(exp.billCopy || "");
-      setVoucherNo(exp.voucherNo || "");
-      setPaymentMethod(exp.paymentMethod || "Cash");
-      setPaidTo(exp.paidTo || "");
-      setStatus(exp.status || "Paid");
+      setBillCopy(exp.billCopy || '');
+      setLocalPreview(exp.billCopy || '');
+      setVoucherNo(exp.voucherNo || '');
+      setPaymentMethod(exp.paymentMethod || 'Cash');
+      setPaidTo(exp.paidTo || '');
+      setStatus(exp.status || 'Paid');
     }
   }, [isEditing, expenseData]);
 
-  // Handle Bill Copy upload to Cloudinary
+  // Handle Bill Copy upload to Cloudinary with instant preview
   const handleBillUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 8 * 1024 * 1024) {
-      setError("Bill copy image file size must be less than 8MB.");
+      setError('Bill copy image file size must be less than 8MB.');
       return;
     }
 
+    // Instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    setLocalPreview(previewUrl);
+
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append('file', file);
+    formData.append('image', file);
+    formData.append('folder', 'netro-hospital/expenses');
 
     try {
-      setUploadNotice("Uploading attached bill copy voucher...");
-      setError("");
+      setUploadNotice('Uploading voucher scan to cloud storage...');
+      setError('');
       const res = await uploadBill(formData).unwrap();
       if (res.success && res.url) {
         setBillCopy(res.url);
-        setUploadNotice("Bill copy voucher uploaded successfully!");
-        setTimeout(() => setUploadNotice(""), 3000);
+        setLocalPreview(res.url);
+        setUploadNotice('Bill copy voucher uploaded and attached successfully!');
+        setTimeout(() => setUploadNotice(''), 3500);
       } else {
-        throw new Error(res.message || "Bill copy upload failed");
+        throw new Error(res.message || 'Bill copy upload failed');
       }
     } catch (err: any) {
-      setError(
-        err?.data?.message || err?.message || "Error uploading bill voucher",
-      );
-      setUploadNotice("");
+      setError(err?.data?.message || err?.message || 'Error uploading bill voucher');
+      setUploadNotice('');
+    }
+  };
+
+  const handleRemoveBill = () => {
+    setBillCopy('');
+    setLocalPreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -458,33 +477,45 @@ export const ExpenseFormPage: React.FC = () => {
               memo, or payment voucher for financial auditing.
             </p>
 
-            {billCopy ? (
+            {localPreview || billCopy ? (
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row items-center gap-4">
+                {/* Thumbnail Preview with Click-to-Zoom */}
                 <div
                   onClick={() => setIsPreviewModalOpen(true)}
                   className="h-28 w-28 rounded-xl bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer group relative shadow-xs"
-                  title="Click to view full voucher"
+                  title="Click to view full voucher preview"
                 >
                   <img
-                    src={billCopy}
+                    src={localPreview || billCopy}
                     alt="Attached Bill"
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform"
                   />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
-                    <Eye className="h-5 w-5" />
-                  </div>
+                  {isUploading ? (
+                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1 z-10">
+                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Uploading...</span>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                      <Eye className="h-5 w-5" />
+                    </div>
+                  )}
                 </div>
 
+                {/* Upload Status & Actions */}
                 <div className="space-y-2 text-center sm:text-left flex-1">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
                     <Check className="h-4 w-4 text-emerald-600" />
-                    <span>Bill copy successfully attached</span>
+                    <span>
+                      {isUploading
+                        ? 'Uploading voucher to secure storage...'
+                        : 'Bill copy voucher attached & preview ready'}
+                    </span>
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Image is secured on Cloudinary CDN. Auditors can inspect the
-                    full voucher receipt anytime.
+                    Click the thumbnail or &apos;View Receipt&apos; to inspect full resolution. Image is synced to Cloudinary CDN.
                   </p>
-                  <div className="flex items-center gap-2 pt-1 justify-center sm:justify-start">
+                  <div className="flex items-center gap-2 pt-1 justify-center sm:justify-start flex-wrap">
                     <Button
                       type="button"
                       variant="outline"
@@ -499,7 +530,19 @@ export const ExpenseFormPage: React.FC = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setBillCopy("")}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="text-xs h-8 gap-1.5 text-slate-700 hover:text-dark"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>Replace Photo</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleRemoveBill}
+                      disabled={isUploading}
                       className="text-xs h-8 text-accent hover:text-accent border-red-200 hover:bg-red-50 gap-1.5"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -517,29 +560,29 @@ export const ExpenseFormPage: React.FC = () => {
                   <div>
                     <span className="text-xs font-bold text-primary hover:underline">
                       {isUploading
-                        ? "Uploading voucher..."
-                        : "Click to Upload Bill Copy / Voucher Photo"}
+                        ? 'Uploading voucher...'
+                        : 'Click to Upload Bill Copy / Voucher Photo'}
                     </span>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      JPG, PNG, WebP up to 8MB. Direct mobile camera photos
-                      supported.
+                      JPG, PNG, WebP up to 8MB. Direct mobile camera photos supported.
                     </p>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBillUpload}
-                    className="hidden"
-                    disabled={isUploading}
-                  />
                 </label>
               </div>
             )}
 
+            {/* Hidden File Input for both initial upload and replacement */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBillUpload}
+              className="hidden"
+              disabled={isUploading}
+            />
+
             {uploadNotice && (
-              <p className="text-xs text-emerald-600 font-semibold">
-                {uploadNotice}
-              </p>
+              <p className="text-xs text-emerald-600 font-semibold">{uploadNotice}</p>
             )}
           </div>
         </div>
@@ -565,9 +608,7 @@ export const ExpenseFormPage: React.FC = () => {
             ) : (
               <>
                 <Save className="h-3.5 w-3.5" />
-                <span>
-                  {isEditing ? "Save Changes" : "Confirm & Record Expense"}
-                </span>
+                <span>{isEditing ? 'Save Changes' : 'Confirm & Record Expense'}</span>
               </>
             )}
           </Button>
@@ -575,15 +616,19 @@ export const ExpenseFormPage: React.FC = () => {
       </form>
 
       {/* Bill Preview Modal */}
-      {isPreviewModalOpen && billCopy && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+      {isPreviewModalOpen && (localPreview || billCopy) && (
+        <div
+          onClick={() => setIsPreviewModalOpen(false)}
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+          >
             <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileCheck2 className="h-5 w-5 text-primary" />
-                <h3 className="text-sm font-bold text-dark">
-                  Attached Bill Voucher Scan
-                </h3>
+                <h3 className="text-sm font-bold text-dark">Attached Bill Voucher Scan</h3>
               </div>
               <button
                 type="button"
@@ -595,20 +640,31 @@ export const ExpenseFormPage: React.FC = () => {
             </div>
             <div className="p-4 overflow-auto flex-1 flex items-center justify-center bg-slate-100/60">
               <img
-                src={billCopy}
+                src={localPreview || billCopy}
                 alt="Bill Preview"
                 className="max-h-[70vh] w-auto object-contain rounded-lg shadow-sm"
               />
             </div>
-            <div className="p-3 px-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
-              <a
-                href={billCopy}
-                target="_blank"
-                rel="noreferrer"
-                className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs"
+            <div className="p-3 px-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPreviewModalOpen(false)}
+                className="text-xs"
               >
-                Open Original File ↗
-              </a>
+                Close
+              </Button>
+              {billCopy && (
+                <a
+                  href={billCopy}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs"
+                >
+                  Open Original File ↗
+                </a>
+              )}
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import {
   LayoutGrid,
+  Building2,
   Users,
   Stethoscope,
   Calendar,
@@ -26,6 +27,7 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'departments', label: 'Departments', icon: Building2 },
     { id: 'patients', label: 'Patients', icon: Users },
     { id: 'doctors', label: 'Doctors', icon: Stethoscope },
     { id: 'appointments', label: 'Appointments', icon: Calendar },
@@ -34,6 +36,7 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
 
   const handleSignOut = () => {
     dispatch(logout());

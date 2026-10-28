@@ -552,13 +552,16 @@ export const ExpenseFormPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-slate-200 hover:border-primary/50 rounded-2xl p-8 text-center bg-slate-50/50 hover:bg-emerald-50/30 transition-all cursor-pointer">
-                <label className="cursor-pointer flex flex-col items-center justify-center space-y-2">
-                  <div className="h-12 w-12 rounded-2xl bg-white text-primary flex items-center justify-center shadow-xs border border-slate-200">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-200 hover:border-primary/50 hover:bg-emerald-50/20 rounded-2xl p-8 text-center bg-slate-50/50 transition-all cursor-pointer group"
+              >
+                <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                  <div className="h-12 w-12 rounded-2xl bg-white text-primary flex items-center justify-center shadow-xs border border-slate-200 group-hover:scale-105 group-hover:border-primary/40 transition-all">
                     <Upload className="h-6 w-6" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-primary hover:underline">
+                    <span className="text-xs font-bold text-primary group-hover:underline">
                       {isUploading
                         ? 'Uploading voucher...'
                         : 'Click to Upload Bill Copy / Voucher Photo'}
@@ -567,12 +570,13 @@ export const ExpenseFormPage: React.FC = () => {
                       JPG, PNG, WebP up to 8MB. Direct mobile camera photos supported.
                     </p>
                   </div>
-                </label>
+                </div>
               </div>
             )}
 
             {/* Hidden File Input for both initial upload and replacement */}
             <input
+              id="bill-copy-input"
               ref={fileInputRef}
               type="file"
               accept="image/*"

@@ -22,19 +22,23 @@ export const HospitalLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-dark flex flex-col p-4 sm:p-6 lg:p-7 gap-5 font-sans overflow-x-hidden">
-      {/* 1. Ultra Clean Top Floating Navigation Bar */}
+    <div className="h-screen overflow-hidden bg-[#F8FAFC] text-dark flex flex-col p-3 sm:p-5 lg:p-6 gap-4 font-sans select-none">
+      {/* 1. Ultra Clean Top Floating Navigation Bar - Fixed */}
       <HospitalHeader onOpenModal={() => setIsModalOpen(true)} />
 
-      {/* 2. Main Content Canvas: Floating Sidebar + Dynamic Content Canvas */}
-      <div className="flex-1 flex gap-5 items-start min-h-0">
-        {/* Left Floating Rounded Sidebar */}
-        <div className="hidden md:block sticky top-6">
+      {/* 2. Main Content Canvas: Fixed Sidebar + Scrollable Content */}
+      <div className="flex-1 flex gap-4 lg:gap-5 items-stretch min-h-0 overflow-hidden">
+        {/* Left Fixed Floating Rounded Sidebar */}
+        <div className="hidden md:flex h-full shrink-0">
           <HospitalSidebar currentTab={currentTab} setCurrentTab={handleTabChange} />
         </div>
 
-        {/* Right Scrollable Dashboard Canvas */}
-        <main className="flex-1 min-w-0 pb-10">
+        {/* Right Scrollable Dashboard Canvas - Content Scrolls smoothly */}
+        <main
+          className="flex-1 h-full overflow-y-auto no-scrollbar pr-1 pb-10"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+
           {currentTab === 'dashboard' && (
             <HospitalDashboardView
               onOpenNewAppointment={() => setIsModalOpen(true)}

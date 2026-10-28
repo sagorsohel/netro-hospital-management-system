@@ -41,9 +41,12 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
   };
 
   return (
-    <aside className="w-56 bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between shrink-0 select-none">
+    <aside className="w-56 h-full bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between shrink-0 select-none overflow-hidden">
       {/* Navigation Menu */}
-      <nav className="space-y-1.5">
+      <nav
+        className="space-y-1.5 overflow-y-auto no-scrollbar flex-1 pr-0.5"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentTab === item.id;
@@ -65,7 +68,8 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
       </nav>
 
       {/* User Info & Sign Out Footer */}
-      <div className="pt-4 border-t border-slate-100 space-y-3">
+      <div className="pt-4 border-t border-slate-100 space-y-3 shrink-0">
+
         {/* User Card */}
         <div className="flex items-center gap-2.5 px-2">
           <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs ring-1 ring-primary/30 shrink-0">

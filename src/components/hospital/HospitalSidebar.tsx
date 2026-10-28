@@ -2,17 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
-import {
-  LayoutGrid,
-  Building2,
-  Users,
-  Stethoscope,
-  Calendar,
-  CreditCard,
-  FileText,
-  Settings,
-  LogOut,
-} from 'lucide-react';
+import { LayoutGrid, Building2, LogOut } from 'lucide-react';
 
 export const HospitalSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -23,12 +13,6 @@ export const HospitalSidebar: React.FC = () => {
   const navItems = [
     { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
     { id: 'departments', path: '/departments', label: 'Departments', icon: Building2 },
-    { id: 'patients', path: '/patients', label: 'Patients', icon: Users },
-    { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope },
-    { id: 'appointments', path: '/appointments', label: 'Appointments', icon: Calendar },
-    { id: 'billing', path: '/billing', label: 'Billing', icon: CreditCard },
-    { id: 'reports', path: '/reports', label: 'Reports', icon: FileText },
-    { id: 'settings', path: '/settings', label: 'Settings', icon: Settings },
   ];
 
   const handleSignOut = () => {

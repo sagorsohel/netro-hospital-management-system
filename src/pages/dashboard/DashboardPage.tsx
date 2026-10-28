@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import type { HospitalOutletContextType } from '../../components/hospital/HospitalLayout';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Calendar,
@@ -12,17 +11,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  CalendarPlus,
-  UserPlus,
   Info,
   Check,
   X,
   Clock,
   Activity,
+  Building2,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
-  const context = useOutletContext<HospitalOutletContextType>();
   const [revenueTab, setRevenueTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [patientTab, setPatientTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [selectedDate, setSelectedDate] = useState(19);
@@ -201,25 +198,13 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* New Appointment Outline Button */}
-          <button
-            onClick={() => context?.openModal?.()}
-            type="button"
-            className="h-10 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
-          >
-            <CalendarPlus className="h-4 w-4 text-slate-500" />
-            <span>New Appointment</span>
-          </button>
-
-          {/* Register Patient Solid Green Button */}
-          <button
-            onClick={() => context?.openModal?.()}
-            type="button"
+          <Link
+            to="/departments"
             className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white shadow-sm shadow-primary/25 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
           >
-            <UserPlus className="h-4 w-4 text-white" />
-            <span>Register Patient</span>
-          </button>
+            <Building2 className="h-4 w-4 text-white" />
+            <span>Manage Departments</span>
+          </Link>
         </div>
       </div>
 

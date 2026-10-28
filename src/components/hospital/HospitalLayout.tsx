@@ -1,20 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { Outlet } from "react-router-dom";
 import { HospitalSidebar } from "./HospitalSidebar";
 import { HospitalHeader } from "./HospitalHeader";
-import { NewAppointmentModal } from "../NewAppointmentModal";
-
-export interface HospitalOutletContextType {
-  openModal: () => void;
-}
 
 export const HospitalLayout: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <div className="h-screen overflow-hidden bg-[#F8FAFC] text-dark flex flex-col gap-4 font-sans select-none">
       {/* 1. Ultra Clean Top Floating Navigation Bar - Fixed */}
-      <HospitalHeader onOpenModal={() => setIsModalOpen(true)} />
+      <HospitalHeader />
 
       {/* 2. Main Content Canvas: Fixed Sidebar + Scrollable Content */}
       <div className="flex-1 flex gap-4 lg:gap-5 items-stretch min-h-0 overflow-hidden">
@@ -28,15 +21,9 @@ export const HospitalLayout: React.FC = () => {
           className="flex-1 h-full overflow-y-auto no-scrollbar pr-1 pb-10"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          <Outlet context={{ openModal: () => setIsModalOpen(true) }} />
+          <Outlet />
         </main>
       </div>
-
-      {/* New Appointment / Register Patient Modal */}
-      <NewAppointmentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
     </div>
   );
 };

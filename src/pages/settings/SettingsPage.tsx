@@ -1,9 +1,8 @@
 import React from 'react';
-import { Settings, Shield, Bell, Database, Globe, Save } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
+import { Shield, Database, Globe, Save } from 'lucide-react';
+import { Input } from '../../components/ui/input';
 
-export const SettingsView: React.FC = () => {
+export const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex items-center justify-between">
@@ -94,4 +93,4 @@ export const SettingsView: React.FC = () => {
   );
 };
 
-export default SettingsView;
+export default SettingsPage;

@@ -1,25 +1,25 @@
 import React, { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { loginSuccess } from "../store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { loginSuccess } from "../../store/slices/authSlice";
 import {
   Activity,
   ShieldCheck,
   Lock,
   Mail,
   ArrowRight,
-  Pill,
   Building2,
   CheckCircle2,
   Sparkles,
   AlertCircle,
+  Stethoscope,
 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
 
-import { useLoginMutation } from '../store/api/authApi';
+import { useLoginMutation } from '../../store/api/authApi';
 
-export const LoginView: React.FC = () => {
+export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -77,15 +77,15 @@ export const LoginView: React.FC = () => {
     performLogin(email, password);
   };
 
-  const handleQuickDemo = (role: "admin" | "pharmacist") => {
+  const handleQuickDemo = (role: "admin" | "doctor") => {
     if (role === "admin") {
       setEmail("admin@netro.com");
       setPassword("12345678");
       performLogin("admin@netro.com", "12345678");
     } else {
-      setEmail("pharmarcy@netro.com");
+      setEmail("doctor@netro.com");
       setPassword("12345678");
-      performLogin("pharmarcy@netro.com", "12345678");
+      performLogin("doctor@netro.com", "12345678");
     }
   };
 
@@ -126,7 +126,7 @@ export const LoginView: React.FC = () => {
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 Connect patient diagnostic billing, doctors schedule queue, IPD
-                admission, and high-speed pharmacy counter sales.
+                admission, and hospital operations.
               </p>
             </div>
 
@@ -146,14 +146,13 @@ export const LoginView: React.FC = () => {
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                <Pill className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                <Stethoscope className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div>
                   <h4 className="text-xs font-semibold text-white">
-                    Pharmacy POS & Multi-Unit Stock
+                    Clinical Roster & OPD Consultations
                   </h4>
                   <p className="text-[11px] text-slate-300">
-                    Carton ➔ strip ➔ piece conversion, FEFO expiry alerts &
-                    WhatsApp receipts.
+                    Real-time doctor appointment queues, patient serial tokens, and department management.
                   </p>
                 </div>
               </div>
@@ -285,11 +284,11 @@ export const LoginView: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleQuickDemo("pharmacist")}
+                  onClick={() => handleQuickDemo("doctor")}
                   className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-sky-50 hover:border-secondary/40 text-slate-700 hover:text-secondary transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ShieldCheck className="h-4 w-4 text-secondary" />
-                  <span>Pharmacy (pharmarcy@netro.com)</span>
+                  <Stethoscope className="h-4 w-4 text-secondary" />
+                  <span>Doctor (doctor@netro.com)</span>
                 </button>
               </div>
             </div>
@@ -299,3 +298,5 @@ export const LoginView: React.FC = () => {
     </div>
   );
 };
+
+export default LoginPage;

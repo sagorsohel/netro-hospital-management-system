@@ -27,9 +27,9 @@ import {
   useDeleteDepartmentMutation,
   type Department,
 } from '../../store/api/departmentApi';
-import { DepartmentModal } from './DepartmentModal';
-import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
-import { Pagination } from '../common/Pagination';
+import { DepartmentModal } from './components/DepartmentModal';
+import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { Pagination } from '../../components/common/Pagination';
 
 // Helper to render Lucide icon dynamically from string name
 const renderDepartmentIcon = (iconName?: string) => {
@@ -60,7 +60,7 @@ const renderDepartmentIcon = (iconName?: string) => {
   }
 };
 
-export const DepartmentsView: React.FC = () => {
+export const DepartmentPage: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = user?.role === 'admin';
 
@@ -365,4 +365,4 @@ export const DepartmentsView: React.FC = () => {
   );
 };
 
-export default DepartmentsView;
+export default DepartmentPage;

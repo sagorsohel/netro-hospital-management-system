@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { logout, setActiveModule } from '../../store/slices/authSlice';
+import { logout } from '../../store/slices/authSlice';
 import {
   LayoutGrid,
   Building2,
@@ -9,7 +9,6 @@ import {
   Stethoscope,
   Calendar,
   CreditCard,
-  Pill,
   FileText,
   Settings,
   LogOut,
@@ -28,7 +27,6 @@ export const HospitalSidebar: React.FC = () => {
     { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope },
     { id: 'appointments', path: '/appointments', label: 'Appointments', icon: Calendar },
     { id: 'billing', path: '/billing', label: 'Billing', icon: CreditCard },
-    { id: 'pharmacy', path: '/pharmacy', label: 'Pharmacy', icon: Pill },
     { id: 'reports', path: '/reports', label: 'Reports', icon: FileText },
     { id: 'settings', path: '/settings', label: 'Settings', icon: Settings },
   ];
@@ -36,15 +34,6 @@ export const HospitalSidebar: React.FC = () => {
   const handleSignOut = () => {
     dispatch(logout());
     navigate('/');
-  };
-
-  const handleNavClick = (item: (typeof navItems)[0]) => {
-    if (item.id === 'pharmacy') {
-      dispatch(setActiveModule('pharmacy'));
-      navigate('/pharmacy');
-      return;
-    }
-    navigate(item.path);
   };
 
   const isItemActive = (path: string) => {
@@ -56,7 +45,7 @@ export const HospitalSidebar: React.FC = () => {
 
   return (
     <aside className="w-56 h-full bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between shrink-0 select-none overflow-hidden">
-      {/* Navigation Menu with True URL Routing */}
+      {/* Navigation Menu with Semantic Link Elements */}
       <nav
         className="space-y-1.5 overflow-y-auto no-scrollbar flex-1 pr-0.5"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -66,9 +55,9 @@ export const HospitalSidebar: React.FC = () => {
           const active = isItemActive(item.path);
 
           return (
-            <button
+            <Link
               key={item.id}
-              onClick={() => handleNavClick(item)}
+              to={item.path}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                 active
                   ? 'bg-primary text-white shadow-sm shadow-primary/25'
@@ -77,7 +66,7 @@ export const HospitalSidebar: React.FC = () => {
             >
               <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               <span>{item.label}</span>
-            </button>
+            </Link>
           );
         })}
       </nav>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { BarChart3, Download, TrendingUp, Users, CalendarCheck, ShieldCheck } from 'lucide-react';
+import { BarChart3, Download, TrendingUp } from 'lucide-react';
 
-export const ReportsView: React.FC = () => {
+export const ReportsPage: React.FC = () => {
   const metrics = [
     { title: 'Monthly Admissions', value: '1,420', change: '+8.4%', period: 'vs last month' },
     { title: 'Bed Occupancy Rate', value: '88.5%', change: '+3.2%', period: 'vs last month' },
@@ -13,7 +13,7 @@ export const ReportsView: React.FC = () => {
     { name: 'Monthly_Hospital_Operations_October_2026.pdf', size: '2.4 MB', date: 'Oct 28, 2026' },
     { name: 'Clinical_Outcomes_and_Department_Efficiency_Q3.pdf', size: '4.1 MB', date: 'Oct 25, 2026' },
     { name: 'Financial_Revenue_and_Diagnostic_Invoicing_Summary.xlsx', size: '1.2 MB', date: 'Oct 20, 2026' },
-    { name: 'Pharmacy_Dispensing_and_Medicine_Consumption.csv', size: '820 KB', date: 'Oct 15, 2026' },
+    { name: 'Departmental_Bed_Turnover_and_Sterilization_Log.csv', size: '740 KB', date: 'Oct 18, 2026' },
   ];
 
   return (
@@ -73,4 +73,4 @@ export const ReportsView: React.FC = () => {
   );
 };
 
-export default ReportsView;
+export default ReportsPage;

@@ -22,18 +22,18 @@ import {
   useUpdateDepartmentMutation,
   useUploadDepartmentImageMutation,
   type Department,
-} from '../../store/api/departmentApi';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+} from '../../../store/api/departmentApi';
+import { Label } from '../../../components/ui/label';
+import { Input } from '../../../components/ui/input';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '../ui/select';
-import { Textarea } from '../ui/textarea';
-import { Button } from '../ui/button';
+} from '../../../components/ui/select';
+import { Textarea } from '../../../components/ui/textarea';
+import { Button } from '../../../components/ui/button';
 
 interface DepartmentModalProps {
   isOpen: boolean;

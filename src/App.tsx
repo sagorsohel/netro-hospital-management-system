@@ -1,17 +1,16 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppSelector } from './store/hooks';
-import { LoginView } from './components/LoginView';
+import { LoginPage } from './pages/auth/LoginPage';
 import { HospitalLayout } from './components/hospital/HospitalLayout';
-import { HospitalDashboardView } from './components/hospital/HospitalDashboardView';
-import { DepartmentsView } from './components/hospital/DepartmentsView';
-import { DoctorsView } from './components/hospital/DoctorsView';
-import { AppointmentsView } from './components/hospital/AppointmentsView';
-import { PatientsView } from './components/hospital/PatientsView';
-import { BillingView } from './components/hospital/BillingView';
-import { ReportsView } from './components/hospital/ReportsView';
-import { SettingsView } from './components/hospital/SettingsView';
-import { PharmacyLayout } from './components/pharmacy/PharmacyLayout';
+import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { DepartmentPage } from './pages/department/DepartmentPage';
+import { PatientsPage } from './pages/patients/PatientsPage';
+import { DoctorsPage } from './pages/doctors/DoctorsPage';
+import { AppointmentsPage } from './pages/appointments/AppointmentsPage';
+import { BillingPage } from './pages/billing/BillingPage';
+import { ReportsPage } from './pages/reports/ReportsPage';
+import { SettingsPage } from './pages/settings/SettingsPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -26,7 +25,7 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <Routes>
         {/* / route: Login Page */}
-        <Route path="/" element={<LoginView />} />
+        <Route path="/" element={<LoginPage />} />
 
         {/* Hospital Management Layout with Individual Route Paths */}
         <Route
@@ -36,25 +35,15 @@ export const App: React.FC = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<HospitalDashboardView />} />
-          <Route path="/departments" element={<DepartmentsView />} />
-          <Route path="/patients" element={<PatientsView />} />
-          <Route path="/doctors" element={<DoctorsView />} />
-          <Route path="/appointments" element={<AppointmentsView />} />
-          <Route path="/billing" element={<BillingView />} />
-          <Route path="/reports" element={<ReportsView />} />
-          <Route path="/settings" element={<SettingsView />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/departments" element={<DepartmentPage />} />
+          <Route path="/patients" element={<PatientsPage />} />
+          <Route path="/doctors" element={<DoctorsPage />} />
+          <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/billing" element={<BillingPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
-
-        {/* Pharmacy Module */}
-        <Route
-          path="/pharmacy"
-          element={
-            <ProtectedRoute>
-              <PharmacyLayout />
-            </ProtectedRoute>
-          }
-        />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />

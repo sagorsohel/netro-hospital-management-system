@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-export type AppModule = 'hospital' | 'pharmacy' | 'selection';
+export type AppModule = 'hospital';
 
 export interface UserProfile {
   id: string;
@@ -16,7 +16,7 @@ interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
   user: UserProfile | null;
-  activeModule: AppModule | null;
+  activeModule: AppModule;
 }
 
 const savedAuth = (() => {
@@ -33,7 +33,7 @@ const initialState: AuthState = savedAuth || {
   isAuthenticated: false,
   token: null,
   user: null,
-  activeModule: null,
+  activeModule: 'hospital',
 };
 
 const authSlice = createSlice({
@@ -47,7 +47,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.token = action.payload.token;
       state.user = action.payload.user;
-      state.activeModule = 'selection';
+      state.activeModule = 'hospital';
 
       try {
         localStorage.setItem('netro_auth_state', JSON.stringify(state));
@@ -60,7 +60,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.token = null;
       state.user = null;
-      state.activeModule = null;
+      state.activeModule = 'hospital';
       try {
         localStorage.removeItem('netro_auth_state');
         localStorage.removeItem('token');

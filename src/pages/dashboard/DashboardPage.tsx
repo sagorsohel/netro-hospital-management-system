@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import type { HospitalOutletContextType } from '../../components/hospital/HospitalLayout';
 import {
   Users,
   Calendar,
@@ -19,15 +21,8 @@ import {
   Activity,
 } from 'lucide-react';
 
-interface HospitalDashboardViewProps {
-  onOpenNewAppointment?: () => void;
-  onOpenRegisterPatient?: () => void;
-}
-
-export const HospitalDashboardView: React.FC<HospitalDashboardViewProps> = ({
-  onOpenNewAppointment,
-  onOpenRegisterPatient,
-}) => {
+export const DashboardPage: React.FC = () => {
+  const context = useOutletContext<HospitalOutletContextType>();
   const [revenueTab, setRevenueTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [patientTab, setPatientTab] = useState<'Week' | 'Month' | 'Year'>('Week');
   const [selectedDate, setSelectedDate] = useState(19);
@@ -208,7 +203,7 @@ export const HospitalDashboardView: React.FC<HospitalDashboardViewProps> = ({
         <div className="flex items-center gap-3">
           {/* New Appointment Outline Button */}
           <button
-            onClick={onOpenNewAppointment}
+            onClick={() => context?.openModal?.()}
             type="button"
             className="h-10 px-4 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.02)] text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
           >
@@ -218,7 +213,7 @@ export const HospitalDashboardView: React.FC<HospitalDashboardViewProps> = ({
 
           {/* Register Patient Solid Green Button */}
           <button
-            onClick={onOpenRegisterPatient}
+            onClick={() => context?.openModal?.()}
             type="button"
             className="h-10 px-4 rounded-xl bg-primary hover:bg-primary-hover text-white shadow-sm shadow-primary/25 text-xs font-semibold flex items-center gap-2 cursor-pointer transition-colors"
           >
@@ -730,3 +725,5 @@ export const HospitalDashboardView: React.FC<HospitalDashboardViewProps> = ({
     </div>
   );
 };
+
+export default DashboardPage;

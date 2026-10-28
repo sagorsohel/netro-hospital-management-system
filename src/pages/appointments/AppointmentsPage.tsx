@@ -1,9 +1,9 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { DoctorsList } from '../DoctorsList';
-import type { HospitalOutletContextType } from './HospitalLayout';
+import { AppointmentsTable } from '../../components/AppointmentsTable';
+import type { HospitalOutletContextType } from '../../components/hospital/HospitalLayout';
 
-export const DoctorsView: React.FC = () => {
+export const AppointmentsPage: React.FC = () => {
   const context = useOutletContext<HospitalOutletContextType>();
 
   return (
@@ -11,22 +11,22 @@ export const DoctorsView: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-black text-dark tracking-tight">
-            Doctors & Clinical Roster
+            Appointments & Serials
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Live duty schedule, department rosters, specialist availability, and patient queues.
+            Real-time doctor appointment queue with SMS notifications & barcode confirmation.
           </p>
         </div>
         <button
           onClick={() => context?.openModal?.()}
           className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs cursor-pointer transition-colors"
         >
-          + Add Doctor Schedule
+          + Book Appointment
         </button>
       </div>
-      <DoctorsList />
+      <AppointmentsTable />
     </div>
   );
 };
 
-export default DoctorsView;
+export default AppointmentsPage;

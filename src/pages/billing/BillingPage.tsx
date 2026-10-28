@@ -2,7 +2,7 @@ import React from 'react';
 import { CreditCard, Receipt, ArrowUpRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export const BillingView: React.FC = () => {
+export const BillingPage: React.FC = () => {
   const invoices = [
     {
       id: 'INV-2026-0841',
@@ -166,4 +166,4 @@ export const BillingView: React.FC = () => {
   );
 };
 
-export default BillingView;
+export default BillingPage;

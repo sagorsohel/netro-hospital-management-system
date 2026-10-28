@@ -1,5 +1,13 @@
 import { baseApi } from './baseApi';
 
+export interface StaffDocument {
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  uploadedAt?: string;
+}
+
 export interface Staff {
   id: string;
   name: string;
@@ -15,6 +23,7 @@ export interface Staff {
   bloodGroup?: string;
   emergencyContact?: string;
   qualification?: string;
+  documents?: StaffDocument[];
   status: 'Active' | 'On Leave' | 'Resigned';
   createdAt?: string;
   updatedAt?: string;
@@ -248,6 +257,17 @@ export const staffApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Leaves', 'Staff'],
     }),
+
+    uploadStaffFile: builder.mutation<
+      { success: boolean; url: string; name?: string; size?: number; mimetype?: string; message?: string },
+      FormData
+    >({
+      query: (formData) => ({
+        url: '/upload/image',
+        method: 'POST',
+        body: formData,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -268,4 +288,5 @@ export const {
   useGetLeaveRequestsQuery,
   useCreateLeaveRequestMutation,
   useUpdateLeaveStatusMutation,
+  useUploadStaffFileMutation,
 } = staffApi;

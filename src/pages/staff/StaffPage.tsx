@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Users,
   Calendar,
@@ -25,6 +25,12 @@ import {
   ShieldCheck,
   ArrowRight,
   Layers,
+  Upload,
+  Camera,
+  ExternalLink,
+  Eye,
+  Paperclip,
+  Loader2,
 } from 'lucide-react';
 import {
   useGetStaffQuery,
@@ -40,7 +46,9 @@ import {
   useGetLeaveRequestsQuery,
   useCreateLeaveRequestMutation,
   useUpdateLeaveStatusMutation,
+  useUploadStaffFileMutation,
   type Staff,
+  type StaffDocument,
   type DutyRoster,
   type Payroll,
   type LeaveRequest,
@@ -110,6 +118,7 @@ export const StaffPage: React.FC = () => {
   // Modals state
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [selectedStaffDocs, setSelectedStaffDocs] = useState<Staff | null>(null);
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -162,20 +171,44 @@ export const StaffPage: React.FC = () => {
   const [createPayroll, { isLoading: isCreatingPayroll }] = useCreatePayrollMutation();
   const [createLeave, { isLoading: isCreatingLeave }] = useCreateLeaveRequestMutation();
   const [updateLeaveStatus] = useUpdateLeaveStatusMutation();
+  const [uploadStaffFile] = useUploadStaffFileMutation();
+
+  // Upload states & refs
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingDocs, setIsUploadingDocs] = useState(false);
+  const [uploadDocProgress, setUploadDocProgress] = useState('');
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const docInputRef = useRef<HTMLInputElement | null>(null);
 
   // Form states for modals
-  const [staffForm, setStaffForm] = useState({
+  const [staffForm, setStaffForm] = useState<{
+    name: string;
+    designation: string;
+    department: string;
+    phone: string;
+    email: string;
+    address: string;
+    photo: string;
+    documents: StaffDocument[];
+    salary: string;
+    bloodGroup: string;
+    emergencyContact: string;
+    qualification: string;
+    status: 'Active' | 'On Leave' | 'Resigned';
+  }>({
     name: '',
     designation: STAFF_DESIGNATIONS[0],
     department: '',
     phone: '',
     email: '',
     address: '',
+    photo: '',
+    documents: [],
     salary: '25000',
     bloodGroup: 'B+',
     emergencyContact: '',
     qualification: '',
-    status: 'Active' as 'Active' | 'On Leave' | 'Resigned',
+    status: 'Active',
   });
 
   const [rosterForm, setRosterForm] = useState({
@@ -211,6 +244,100 @@ export const StaffPage: React.FC = () => {
     reason: '',
   });
 
+  // Photo upload
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Profile photo size must be less than 8MB.');
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('image', file);
+      formData.append('folder', 'netro-hospital/staff');
+      const res = await uploadStaffFile(formData).unwrap();
+      if (res.success && res.url) {
+        setStaffForm((prev) => ({ ...prev, photo: res.url }));
+      } else {
+        throw new Error(res.message || 'Photo upload failed');
+      }
+    } catch (err: any) {
+      alert(err?.data?.message || err?.message || 'Error uploading profile photo');
+    } finally {
+      setIsUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
+
+  // Multiple Documents upload
+  const handleDocumentsUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingDocs(true);
+    setUploadDocProgress(`Uploading ${files.length} document${files.length > 1 ? 's' : ''}...`);
+
+    const uploadedDocs: StaffDocument[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 15 * 1024 * 1024) {
+        alert(`File "${file.name}" exceeds 15MB limit.`);
+        continue;
+      }
+
+      try {
+        setUploadDocProgress(`Uploading (${i + 1}/${files.length}): ${file.name}...`);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('image', file);
+        formData.append('folder', 'netro-hospital/staff_documents');
+        const res = await uploadStaffFile(formData).unwrap();
+        if (res.success && res.url) {
+          uploadedDocs.push({
+            name: file.name,
+            url: res.url,
+            size: file.size,
+            type: file.type || 'application/octet-stream',
+            uploadedAt: new Date().toISOString(),
+          });
+        }
+      } catch (err: any) {
+        alert(`Failed to upload "${file.name}": ` + (err?.data?.message || err?.message || 'Server error'));
+      }
+    }
+
+    if (uploadedDocs.length > 0) {
+      setStaffForm((prev) => ({
+        ...prev,
+        documents: [...(prev.documents || []), ...uploadedDocs],
+      }));
+    }
+
+    setIsUploadingDocs(false);
+    setUploadDocProgress('');
+    if (docInputRef.current) docInputRef.current.value = '';
+  };
+
+  const handleRemoveDoc = (index: number) => {
+    setStaffForm((prev) => ({
+      ...prev,
+      documents: (prev.documents || []).filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
   // Open Edit Staff Modal
   const handleEditStaff = (member: Staff) => {
     setEditingStaff(member);
@@ -221,6 +348,8 @@ export const StaffPage: React.FC = () => {
       phone: member.phone,
       email: member.email || '',
       address: member.address || '',
+      photo: member.photo || '',
+      documents: member.documents || [],
       salary: member.salary ? String(member.salary) : '25000',
       bloodGroup: member.bloodGroup || 'B+',
       emergencyContact: member.emergencyContact || '',
@@ -347,6 +476,8 @@ export const StaffPage: React.FC = () => {
                   phone: '',
                   email: '',
                   address: '',
+                  photo: '',
+                  documents: [],
                   salary: '25000',
                   bloodGroup: 'B+',
                   emergencyContact: '',
@@ -672,6 +803,27 @@ export const StaffPage: React.FC = () => {
                       </div>
                     )}
                   </div>
+
+                  {person.documents && person.documents.length > 0 && (
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStaffDocs(person)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100/80 text-primary border border-emerald-200/80 text-[11px] font-bold cursor-pointer transition-colors"
+                      >
+                        <Paperclip className="h-3 w-3 text-primary" />
+                        <span>{person.documents.length} Document{person.documents.length > 1 ? 's' : ''} Attached</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStaffDocs(person)}
+                        className="text-[11px] text-slate-500 hover:text-primary flex items-center gap-1 font-semibold cursor-pointer"
+                      >
+                        <Eye className="h-3 w-3" />
+                        <span>View</span>
+                      </button>
+                    </div>
+                  )}
 
                   {isAdmin && (
                     <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
@@ -1003,20 +1155,95 @@ export const StaffPage: React.FC = () => {
       {/* MODAL 1: ADD / EDIT STAFF */}
       {isStaffModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
             <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-dark">
-                {editingStaff ? 'Edit Staff Member' : 'Register New Hospital Staff'}
-              </h3>
+              <div>
+                <h3 className="text-sm font-bold text-dark">
+                  {editingStaff ? 'Edit Staff Profile' : 'Register New Hospital Staff'}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Update employee biodata, profile photo, and credentials.
+                </p>
+              </div>
               <button
                 onClick={() => setIsStaffModalOpen(false)}
-                className="h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                className="h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
               >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleSaveStaff} className="p-6 space-y-4 overflow-y-auto">
+              {/* Profile Photo Uploader Section */}
+              <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+                <div className="relative group shrink-0">
+                  <div className="h-20 w-20 rounded-2xl bg-white border-2 border-slate-200 overflow-hidden flex items-center justify-center shadow-xs">
+                    {staffForm.photo ? (
+                      <img
+                        src={staffForm.photo}
+                        alt="Staff Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Users className="h-9 w-9 text-slate-300" />
+                    )}
+                    {isUploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 text-white animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={isUploadingPhoto}
+                    className="absolute -bottom-1.5 -right-1.5 h-7 w-7 rounded-lg bg-primary hover:bg-primary-hover text-white flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-105"
+                    title="Upload Profile Picture"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-dark">Staff Profile Photo</span>
+                    {staffForm.photo && (
+                      <button
+                        type="button"
+                        onClick={() => setStaffForm((prev) => ({ ...prev, photo: '' }))}
+                        className="text-[11px] text-accent hover:underline font-semibold cursor-pointer"
+                      >
+                        Remove Photo
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Upload professional portrait picture (JPG, PNG, WebP up to 8MB).
+                  </p>
+                  <div className="pt-1 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploadingPhoto}
+                      onClick={() => photoInputRef.current?.click()}
+                      className="h-7 text-xs font-semibold px-2.5 gap-1.5 cursor-pointer"
+                    >
+                      <Upload className="h-3 w-3 text-primary" />
+                      <span>{isUploadingPhoto ? 'Uploading...' : staffForm.photo ? 'Change Photo' : 'Upload Photo'}</span>
+                    </Button>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handlePhotoUpload}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Personal Details */}
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Full Name *</Label>
                 <Input
@@ -1027,7 +1254,7 @@ export const StaffPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Designation *</Label>
                   <Select
@@ -1067,7 +1294,7 @@ export const StaffPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Contact Phone *</Label>
                   <Input
@@ -1089,7 +1316,7 @@ export const StaffPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Monthly Salary</Label>
                   <Input
@@ -1145,6 +1372,102 @@ export const StaffPage: React.FC = () => {
                 />
               </div>
 
+              {/* Multiple Documents / Certificates Upload Section */}
+              <div className="space-y-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-xs font-bold text-dark flex items-center gap-1.5">
+                      <Paperclip className="h-3.5 w-3.5 text-primary" />
+                      <span>Documents & Credentials (Certificates, NID, License, CV)</span>
+                    </Label>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Upload educational certificates, medical licenses, NID, or resume. Multiple files can be selected.
+                    </p>
+                  </div>
+                  {staffForm.documents && staffForm.documents.length > 0 && (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-primary border border-emerald-200 text-[11px] font-bold">
+                      {staffForm.documents.length} File{staffForm.documents.length > 1 ? 's' : ''} Attached
+                    </span>
+                  )}
+                </div>
+
+                {/* Dropzone Upload Button */}
+                <div
+                  onClick={() => docInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-200 hover:border-primary/60 hover:bg-emerald-50/20 rounded-xl p-4 text-center cursor-pointer transition-all space-y-1.5 group"
+                >
+                  <div className="h-9 w-9 rounded-xl bg-slate-100 group-hover:bg-primary/10 text-slate-400 group-hover:text-primary mx-auto flex items-center justify-center transition-colors">
+                    {isUploadingDocs ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-700 group-hover:text-primary transition-colors">
+                      {isUploadingDocs ? uploadDocProgress : 'Click to browse & upload multiple certificates / documents'}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Supports PDF, JPG, PNG, DOC, DOCX up to 15MB each
+                    </p>
+                  </div>
+                  <input
+                    ref={docInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.txt"
+                    className="hidden"
+                    onChange={handleDocumentsUpload}
+                    disabled={isUploadingDocs}
+                  />
+                </div>
+
+                {/* Attached Documents List */}
+                {staffForm.documents && staffForm.documents.length > 0 && (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {staffForm.documents.map((doc, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 transition-colors text-xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-8 w-8 rounded-lg bg-emerald-50 border border-emerald-200/60 text-primary flex items-center justify-center shrink-0">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-dark truncate max-w-xs">{doc.name}</p>
+                            <p className="text-[10px] text-slate-400 flex items-center gap-2">
+                              {doc.size ? <span>{formatFileSize(doc.size)}</span> : null}
+                              <span>• Attached Credential</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 text-[11px] font-semibold flex items-center gap-1 transition-colors"
+                          >
+                            <Eye className="h-3 w-3 text-slate-500" />
+                            <span>View</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDoc(idx)}
+                            className="h-7 w-7 rounded-lg hover:bg-red-50 text-slate-400 hover:text-accent flex items-center justify-center transition-colors cursor-pointer"
+                            title="Remove document"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <Button
                   type="button"
@@ -1156,10 +1479,14 @@ export const StaffPage: React.FC = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isCreatingStaff || isUpdatingStaff}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold"
+                  disabled={isCreatingStaff || isUpdatingStaff || isUploadingPhoto || isUploadingDocs}
+                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold cursor-pointer"
                 >
-                  {editingStaff ? 'Update Profile' : 'Save Staff'}
+                  {isCreatingStaff || isUpdatingStaff
+                    ? 'Saving...'
+                    : editingStaff
+                    ? 'Update Profile'
+                    : 'Save Staff'}
                 </Button>
               </div>
             </form>
@@ -1509,6 +1836,103 @@ export const StaffPage: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: VIEW STAFF DOCUMENTS & CERTIFICATES */}
+      {selectedStaffDocs && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-4 px-6 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                  {selectedStaffDocs.photo ? (
+                    <img
+                      src={selectedStaffDocs.photo}
+                      alt={selectedStaffDocs.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Users className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-dark">{selectedStaffDocs.name}</h3>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedStaffDocs.designation} • {selectedStaffDocs.department}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedStaffDocs(null)}
+                className="h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3 max-h-[70vh] overflow-y-auto">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-dark flex items-center gap-1.5">
+                  <Award className="h-4 w-4 text-primary" />
+                  <span>Attached Credentials & Certificates ({selectedStaffDocs.documents?.length || 0})</span>
+                </h4>
+              </div>
+
+              {(!selectedStaffDocs.documents || selectedStaffDocs.documents.length === 0) ? (
+                <div className="p-8 text-center bg-slate-50 rounded-xl border border-slate-100 space-y-1.5">
+                  <Paperclip className="h-6 w-6 text-slate-300 mx-auto" />
+                  <p className="text-xs font-bold text-slate-600">No Attached Documents</p>
+                  <p className="text-[11px] text-slate-400">No certificates or credentials uploaded yet for this staff member.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {selectedStaffDocs.documents.map((doc, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/70 flex items-center justify-between gap-3 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-9 w-9 rounded-lg bg-emerald-50 border border-emerald-200/80 text-primary flex items-center justify-center shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-dark truncate">{doc.name}</p>
+                          <p className="text-[10px] text-slate-400 flex items-center gap-2">
+                            {doc.size ? <span>{formatFileSize(doc.size)}</span> : null}
+                            <span>• Verified Credential</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>View Document</span>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedStaffDocs(null)}
+                className="text-xs px-4"
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       )}

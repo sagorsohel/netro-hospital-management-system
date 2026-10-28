@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { setActiveModule, logout } from '../../store/slices/authSlice';
 import {
@@ -25,6 +26,7 @@ interface PharmacySidebarProps {
 
 export const PharmacySidebar: React.FC<PharmacySidebarProps> = ({ currentTab, setCurrentTab }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
   const menuItems = [
@@ -59,7 +61,10 @@ export const PharmacySidebar: React.FC<PharmacySidebarProps> = ({ currentTab, se
       {/* Module Switcher Quick Bar */}
       <div className="p-3 bg-slate-900 border-b border-slate-800 space-y-2 shrink-0">
         <button
-          onClick={() => dispatch(setActiveModule('hospital'))}
+          onClick={() => {
+            dispatch(setActiveModule('hospital'));
+            navigate('/dashboard');
+          }}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-secondary/20 hover:bg-secondary/30 text-sky-300 border border-secondary/40 text-xs font-semibold transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-2">

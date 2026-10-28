@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { logout } from '../../store/slices/authSlice';
+import { logout, setActiveModule } from '../../store/slices/authSlice';
 import {
   LayoutGrid,
   Building2,
@@ -15,55 +15,67 @@ import {
   LogOut,
 } from 'lucide-react';
 
-interface HospitalSidebarProps {
-  currentTab: string;
-  setCurrentTab: (tab: string) => void;
-}
-
-export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, setCurrentTab }) => {
+export const HospitalSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'departments', label: 'Departments', icon: Building2 },
-    { id: 'patients', label: 'Patients', icon: Users },
-    { id: 'doctors', label: 'Doctors', icon: Stethoscope },
-    { id: 'appointments', label: 'Appointments', icon: Calendar },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
-    { id: 'pharmacy', label: 'Pharmacy', icon: Pill },
-    { id: 'reports', label: 'Reports', icon: FileText },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
+    { id: 'departments', path: '/departments', label: 'Departments', icon: Building2 },
+    { id: 'patients', path: '/patients', label: 'Patients', icon: Users },
+    { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope },
+    { id: 'appointments', path: '/appointments', label: 'Appointments', icon: Calendar },
+    { id: 'billing', path: '/billing', label: 'Billing', icon: CreditCard },
+    { id: 'pharmacy', path: '/pharmacy', label: 'Pharmacy', icon: Pill },
+    { id: 'reports', path: '/reports', label: 'Reports', icon: FileText },
+    { id: 'settings', path: '/settings', label: 'Settings', icon: Settings },
   ];
-
 
   const handleSignOut = () => {
     dispatch(logout());
     navigate('/');
   };
 
+  const handleNavClick = (item: (typeof navItems)[0]) => {
+    if (item.id === 'pharmacy') {
+      dispatch(setActiveModule('pharmacy'));
+      navigate('/pharmacy');
+      return;
+    }
+    navigate(item.path);
+  };
+
+  const isItemActive = (path: string) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(path);
+  };
+
   return (
     <aside className="w-56 h-full bg-white rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100/90 flex flex-col justify-between shrink-0 select-none overflow-hidden">
-      {/* Navigation Menu */}
+      {/* Navigation Menu with True URL Routing */}
       <nav
         className="space-y-1.5 overflow-y-auto no-scrollbar flex-1 pr-0.5"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentTab === item.id;
+          const active = isItemActive(item.path);
+
           return (
             <button
               key={item.id}
-              onClick={() => setCurrentTab(item.id)}
+              onClick={() => handleNavClick(item)}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                isActive
+                active
                   ? 'bg-primary text-white shadow-sm shadow-primary/25'
                   : 'text-slate-600 hover:text-dark hover:bg-slate-50'
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+              <Icon className={`h-4 w-4 ${active ? 'text-white' : 'text-slate-500'}`} />
               <span>{item.label}</span>
             </button>
           );
@@ -72,7 +84,6 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
 
       {/* User Info & Sign Out Footer */}
       <div className="pt-4 border-t border-slate-100 space-y-3 shrink-0">
-
         {/* User Card */}
         <div className="flex items-center gap-2.5 px-2">
           <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs ring-1 ring-primary/30 shrink-0">
@@ -107,3 +118,5 @@ export const HospitalSidebar: React.FC<HospitalSidebarProps> = ({ currentTab, se
     </aside>
   );
 };
+
+export default HospitalSidebar;

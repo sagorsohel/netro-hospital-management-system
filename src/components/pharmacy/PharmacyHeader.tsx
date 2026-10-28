@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, ShoppingCart, Building2, ArrowLeftRight, LogOut, Plus, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -11,6 +12,7 @@ interface PharmacyHeaderProps {
 
 export const PharmacyHeader: React.FC<PharmacyHeaderProps> = ({ onOpenQuickSale }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
 
   return (
@@ -35,7 +37,10 @@ export const PharmacyHeader: React.FC<PharmacyHeaderProps> = ({ onOpenQuickSale 
       <div className="flex items-center gap-3">
         {/* Switch Module Quick Button */}
         <Button
-          onClick={() => dispatch(setActiveModule('hospital'))}
+          onClick={() => {
+            dispatch(setActiveModule('hospital'));
+            navigate('/dashboard');
+          }}
           variant="outline"
           className="h-9 px-3 text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 border-sky-300 gap-1.5 cursor-pointer rounded-xl"
         >

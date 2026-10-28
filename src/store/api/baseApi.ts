@@ -37,7 +37,23 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Auth', 'Doctors', 'Patients', 'Appointments', 'Medicines', 'Invoices', 'Stats', 'Departments', 'Expenses'],
+  tagTypes: [
+    'Auth',
+    'Doctors',
+    'Patients',
+    'Appointments',
+    'Medicines',
+    'Invoices',
+    'Stats',
+    'Departments',
+    'Expenses',
+    'Staff',
+    'Rosters',
+    'Payrolls',
+    'Leaves',
+    'Equipment',
+    'Maintenance',
+  ],
 
   endpoints: () => ({}),
 });

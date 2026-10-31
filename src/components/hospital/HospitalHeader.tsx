@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Bell, Settings, Activity } from 'lucide-react';
 import { useAppSelector } from '../../store/hooks';
 
@@ -37,13 +38,13 @@ export const HospitalHeader: React.FC<HospitalHeaderProps> = () => {
       {/* Right Controls: Settings, Notifications, Profile Avatar */}
       <div className="flex items-center gap-3">
         {/* Settings Button */}
-        <button
-          type="button"
-          title="Hospital Settings"
+        <Link
+          to="/settings"
+          title="Hospital Settings & Rooms"
           className="h-9 w-9 rounded-full flex items-center justify-center text-slate-500 hover:text-dark hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <Settings className="h-4 w-4" />
-        </button>
+        </Link>
 
         {/* Notifications with alert dot */}
         <button

@@ -101,7 +101,15 @@ export const PatientProfilePage: React.FC = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => navigate(`/tests/pos?patientId=${patient.patientId || patient.id}`)}
+            type="button"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700 transition shadow-sm cursor-pointer"
+          >
+            <FlaskConical className="h-4 w-4" />
+            <span>Order Lab Tests (POS)</span>
+          </button>
           <button
             onClick={handlePrintCard}
             type="button"
@@ -596,7 +604,15 @@ export const PatientProfilePage: React.FC = () => {
                         <td colSpan={6} className="py-12 text-center text-slate-400">
                           <FlaskConical className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                           <p className="font-semibold text-slate-600">No diagnostic investigations</p>
-                          <p className="text-xs">Laboratory orders for this patient will appear here.</p>
+                          <p className="text-xs mb-3">Laboratory orders for this patient will appear here.</p>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/tests/pos?patientId=${patient.patientId || patient.id}`)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition shadow-sm cursor-pointer"
+                          >
+                            <FlaskConical className="h-4 w-4" />
+                            <span>Create Test POS Bill</span>
+                          </button>
                         </td>
                       </tr>
                     ) : (

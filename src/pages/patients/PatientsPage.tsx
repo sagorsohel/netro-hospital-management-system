@@ -15,6 +15,7 @@ import {
   Trash2,
   ShieldCheck,
   Building2,
+  FlaskConical,
 } from 'lucide-react';
 import {
   Select,
@@ -192,6 +193,14 @@ export const PatientsPage: React.FC = () => {
 
         {/* Primary Action Button */}
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => navigate('/tests/pos')}
+            type="button"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-indigo-900 text-white text-xs font-bold hover:bg-indigo-800 transition shadow-sm cursor-pointer"
+          >
+            <FlaskConical className="h-4 w-4" />
+            <span>Lab Test POS</span>
+          </button>
           <button
             onClick={() => navigate('/admissions/new')}
             type="button"
@@ -444,6 +453,18 @@ export const PatientsPage: React.FC = () => {
                             className="p-1.5 rounded-lg text-slate-500 hover:text-primary hover:bg-slate-100 transition cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
+                          </button>
+
+                          {/* Quick Lab Test POS */}
+                          <button
+                            onClick={() =>
+                              navigate(`/tests/pos?patientId=${patient.patientId || patient.id}`)
+                            }
+                            title="Create Diagnostic / Lab Test Bill (POS)"
+                            type="button"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition cursor-pointer"
+                          >
+                            <FlaskConical className="h-4 w-4" />
                           </button>
 
                           {/* Quick Admit */}

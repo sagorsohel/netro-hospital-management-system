@@ -237,7 +237,13 @@ export const DiagnosticInvoicesPage: React.FC = () => {
                             {items.length} Test{items.length > 1 ? 's' : ''}
                           </span>
                           <span className="font-semibold text-slate-800 truncate max-w-[200px] block">
-                            {items.map((t) => t.testName).join(', ')}
+                            {items
+                              .map((t) =>
+                                t.quantity && t.quantity > 1
+                                  ? `${t.testName} (x${t.quantity})`
+                                  : t.testName
+                              )
+                              .join(', ')}
                           </span>
                         </div>
                       </td>

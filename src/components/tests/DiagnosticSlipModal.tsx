@@ -56,27 +56,37 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
     const subtotalNum = parseFloat(String(invoice.subtotal || 0));
 
     const itemRowsHtml = items
-      .map(
-        (t, idx) => `
+      .map((t, idx) => {
+        const unitPrice = parseFloat(String(t.price || 0));
+        const qty = parseInt(String(t.quantity || 1)) || 1;
+        const itemDisc = parseFloat(String(t.discountAmount || 0));
+        const itemTotal = parseFloat(String(t.finalAmount || (unitPrice * qty - itemDisc)));
+
+        return `
         <tr style="${idx % 2 === 1 ? 'background-color: #f8fafc;' : 'background-color: #ffffff;'}">
-          <td style="padding: 7px 10px; font-weight: 700; color: #475569; border-bottom: 1px solid #f1f5f9; text-align: center;">
+          <td style="padding: 7px 8px; font-weight: 700; color: #475569; border-bottom: 1px solid #f1f5f9; text-align: center;">
             ${idx + 1}
           </td>
-          <td style="padding: 7px 12px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9;">
+          <td style="padding: 7px 10px; font-weight: 600; color: #0f172a; border-bottom: 1px solid #f1f5f9;">
             ${t.testName}
-            ${t.roomNumber ? `<span style="font-size: 9.5px; color: #64748b; display: block;">Room: ${t.roomNumber}</span>` : ''}
+            <span style="font-size: 9.5px; color: #64748b; display: block; margin-top: 1px;">
+              ${t.category || 'Pathology'}${t.roomNumber ? ` • Room: ${t.roomNumber}` : ''} • Due: ${t.deliveryDate || invoice.deliveryDate || 'Tomorrow'}
+            </span>
           </td>
-          <td style="padding: 7px 10px; color: #64748b; border-bottom: 1px solid #f1f5f9;">
-            ${t.category || 'Pathology'}
+          <td style="padding: 7px 8px; text-align: right; color: #475569; border-bottom: 1px solid #f1f5f9;">
+            ৳${unitPrice.toFixed(2)}
           </td>
-          <td style="padding: 7px 10px; text-align: center; color: #64748b; border-bottom: 1px solid #f1f5f9;">
-            ${t.deliveryDate || invoice.deliveryDate || 'Tomorrow'}
+          <td style="padding: 7px 8px; text-align: center; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9;">
+            ${qty}
           </td>
-          <td style="padding: 7px 12px; text-align: right; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9;">
-            ৳${parseFloat(String(t.price)).toFixed(2)}
+          <td style="padding: 7px 8px; text-align: right; color: #166534; font-weight: 600; border-bottom: 1px solid #f1f5f9;">
+            ${itemDisc > 0 ? `-৳${itemDisc.toFixed(2)}` : '—'}
           </td>
-        </tr>`
-      )
+          <td style="padding: 7px 10px; text-align: right; font-weight: 700; color: #0f172a; border-bottom: 1px solid #f1f5f9;">
+            ৳${itemTotal.toFixed(2)}
+          </td>
+        </tr>`;
+      })
       .join('');
 
     doc.open();
@@ -378,11 +388,12 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
             <table>
               <thead>
                 <tr>
-                  <th style="width: 35px; text-align: center;">#</th>
+                  <th style="width: 32px; text-align: center;">#</th>
                   <th>Diagnostic Test Description</th>
-                  <th>Category</th>
-                  <th style="text-align: center;">Delivery</th>
-                  <th style="text-align: right;">Amount (BDT)</th>
+                  <th style="text-align: right; width: 75px;">Rate</th>
+                  <th style="text-align: center; width: 45px;">Qty</th>
+                  <th style="text-align: right; width: 65px;">Disc</th>
+                  <th style="text-align: right; width: 85px;">Total (BDT)</th>
                 </tr>
               </thead>
               <tbody>
@@ -612,39 +623,56 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
                 <tr>
                   <th className="py-2 sm:py-2.5 px-3 text-center w-10">#</th>
                   <th className="py-2 sm:py-2.5 px-3 sm:px-4">Test Description</th>
-                  <th className="py-2 sm:py-2.5 px-3">Category</th>
-                  <th className="py-2 sm:py-2.5 px-3 text-center">Delivery</th>
-                  <th className="py-2 sm:py-2.5 px-3 sm:px-4 text-right">Amount (BDT)</th>
+                  <th className="py-2 sm:py-2.5 px-2 text-right">Rate</th>
+                  <th className="py-2 sm:py-2.5 px-2 text-center">Qty</th>
+                  <th className="py-2 sm:py-2.5 px-2 text-right">Disc</th>
+                  <th className="py-2 sm:py-2.5 px-3 sm:px-4 text-right">Total (BDT)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {items.map((t, idx) => (
-                  <tr
-                    key={idx}
-                    className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}
-                  >
-                    <td className="py-2 sm:py-2.5 px-3 text-center font-bold text-slate-400">
-                      {idx + 1}
-                    </td>
-                    <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-slate-900">
-                      {t.testName}
-                      {t.roomNumber && (
-                        <span className="text-[10px] text-slate-400 block font-normal">
-                          Room: {t.roomNumber}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-2 sm:py-2.5 px-3 text-slate-500">
-                      {t.category || 'Pathology'}
-                    </td>
-                    <td className="py-2 sm:py-2.5 px-3 text-center text-slate-500">
-                      {t.deliveryDate || invoice.deliveryDate || 'Tomorrow'}
-                    </td>
-                    <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-bold text-slate-900">
-                      ৳{parseFloat(String(t.price)).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
+                {items.map((t, idx) => {
+                  const unitPrice = parseFloat(String(t.price || 0));
+                  const qty = parseInt(String(t.quantity || 1)) || 1;
+                  const itemDisc = parseFloat(String(t.discountAmount || 0));
+                  const itemTotal = parseFloat(String(t.finalAmount || (unitPrice * qty - itemDisc)));
+
+                  return (
+                    <tr
+                      key={idx}
+                      className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'}
+                    >
+                      <td className="py-2 sm:py-2.5 px-3 text-center font-bold text-slate-400">
+                        {idx + 1}
+                      </td>
+                      <td className="py-2 sm:py-2.5 px-3 sm:px-4 font-semibold text-slate-900">
+                        {t.testName}
+                        <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1.5 mt-0.5">
+                          <span>{t.category || 'Pathology'}</span>
+                          {t.roomNumber && (
+                            <>
+                              <span>•</span>
+                              <span>Room: {t.roomNumber}</span>
+                            </>
+                          )}
+                          <span>•</span>
+                          <span>Delivery: {t.deliveryDate || invoice.deliveryDate || 'Tomorrow'}</span>
+                        </div>
+                      </td>
+                      <td className="py-2 sm:py-2.5 px-2 text-right font-medium text-slate-600">
+                        ৳{unitPrice.toFixed(2)}
+                      </td>
+                      <td className="py-2 sm:py-2.5 px-2 text-center font-bold text-slate-800">
+                        {qty}
+                      </td>
+                      <td className="py-2 sm:py-2.5 px-2 text-right text-emerald-600 font-semibold">
+                        {itemDisc > 0 ? `-৳${itemDisc.toFixed(2)}` : '—'}
+                      </td>
+                      <td className="py-2 sm:py-2.5 px-3 sm:px-4 text-right font-bold text-slate-900">
+                        ৳{itemTotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 

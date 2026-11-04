@@ -6,6 +6,8 @@ import {
   UserCheck,
   Search,
   Plus,
+  Minus,
+  RotateCcw,
   Trash2,
   Receipt,
   CheckCircle2,
@@ -160,10 +162,14 @@ export const TestPOSPage: React.FC = () => {
     return Array.from(set);
   }, [testsData]);
 
-  // Add Test to Cart
+  // Add Test to Cart (if already in cart, increment quantity by 1!)
   const handleAddTestToCart = (t: DiagnosticTest) => {
-    if (cartItems.some((item) => item.testId === t.id)) {
-      alert(`"${t.name}" is already added to this bill.`);
+    const existingIndex = cartItems.findIndex((item) => item.testId === t.id);
+    if (existingIndex > -1) {
+      handleUpdateItemQuantity(
+        existingIndex,
+        (cartItems[existingIndex].quantity || 1) + 1
+      );
       return;
     }
     const priceNum = parseFloat(String(t.price || 0));
@@ -174,6 +180,10 @@ export const TestPOSPage: React.FC = () => {
         testName: t.name,
         category: t.category,
         price: priceNum,
+        quantity: 1,
+        discountType: 'amount',
+        discountValue: 0,
+        discountAmount: 0,
         finalAmount: priceNum,
         deliveryDate: t.deliveryTime || 'Tomorrow 4:00 PM',
         roomNumber: t.roomNumber,
@@ -182,24 +192,132 @@ export const TestPOSPage: React.FC = () => {
     ]);
   };
 
+  // Update Item Quantity
+  const handleUpdateItemQuantity = (idx: number, newQty: number) => {
+    const validQty = Math.max(1, newQty);
+    setCartItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const unitPrice = parseFloat(String(item.price || 0));
+        const lineGross = unitPrice * validQty;
+        const discVal = item.discountValue || 0;
+        let discAmt = 0;
+        if (item.discountType === 'percent') {
+          discAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
+        } else {
+          discAmt = Math.min(lineGross, Math.max(0, discVal));
+        }
+        const finalAmt = Math.max(0, lineGross - discAmt);
+        return {
+          ...item,
+          quantity: validQty,
+          discountAmount: discAmt,
+          finalAmount: finalAmt,
+        };
+      })
+    );
+  };
+
+  // Update Item Individual Discount Value
+  const handleUpdateItemDiscountValue = (idx: number, value: number) => {
+    const rawVal = Math.max(0, value);
+    setCartItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const qty = item.quantity || 1;
+        const unitPrice = parseFloat(String(item.price || 0));
+        const lineGross = unitPrice * qty;
+        let discVal = rawVal;
+        let discAmt = 0;
+        if (item.discountType === 'percent') {
+          discVal = Math.min(100, rawVal);
+          discAmt = (lineGross * discVal) / 100;
+        } else {
+          discVal = rawVal;
+          discAmt = Math.min(lineGross, discVal);
+        }
+        const finalAmt = Math.max(0, lineGross - discAmt);
+        return {
+          ...item,
+          discountValue: discVal,
+          discountAmount: discAmt,
+          finalAmount: finalAmt,
+        };
+      })
+    );
+  };
+
+  // Toggle Item Individual Discount Type (BDT vs %)
+  const handleToggleItemDiscountType = (idx: number) => {
+    setCartItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const nextType = item.discountType === 'percent' ? 'amount' : 'percent';
+        const qty = item.quantity || 1;
+        const unitPrice = parseFloat(String(item.price || 0));
+        const lineGross = unitPrice * qty;
+        let discVal = item.discountValue || 0;
+        let discAmt = 0;
+        if (nextType === 'percent') {
+          discVal = Math.min(100, discVal);
+          discAmt = (lineGross * discVal) / 100;
+        } else {
+          discAmt = Math.min(lineGross, discVal);
+        }
+        const finalAmt = Math.max(0, lineGross - discAmt);
+        return {
+          ...item,
+          discountType: nextType,
+          discountValue: discVal,
+          discountAmount: discAmt,
+          finalAmount: finalAmt,
+        };
+      })
+    );
+  };
+
   // Remove Test from Cart
   const handleRemoveFromCart = (idx: number) => {
     setCartItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  // Clear Cart
+  const handleClearCart = () => {
+    if (cartItems.length > 0 && window.confirm('Are you sure you want to clear all tests from the cart?')) {
+      setCartItems([]);
+    }
+  };
+
   // Cart Calculations
-  const subtotal = useMemo(() => {
-    return cartItems.reduce((sum, item) => sum + (parseFloat(String(item.price)) || 0), 0);
+  const grossSubtotal = useMemo(() => {
+    return cartItems.reduce(
+      (sum, item) => sum + (parseFloat(String(item.price)) || 0) * (item.quantity || 1),
+      0
+    );
   }, [cartItems]);
 
-  const calculatedDiscount = useMemo(() => {
-    if (discountType === 'percent') {
-      return (subtotal * (discountVal || 0)) / 100;
-    }
-    return discountVal || 0;
-  }, [discountType, discountVal, subtotal]);
+  const totalItemDiscounts = useMemo(() => {
+    return cartItems.reduce(
+      (sum, item) => sum + (parseFloat(String(item.discountAmount)) || 0),
+      0
+    );
+  }, [cartItems]);
 
-  const grandTotal = Math.max(0, subtotal - calculatedDiscount);
+  const subtotalAfterItemDiscounts = Math.max(0, grossSubtotal - totalItemDiscounts);
+
+  const calculatedInvoiceDiscount = useMemo(() => {
+    if (discountType === 'percent') {
+      return (subtotalAfterItemDiscounts * (discountVal || 0)) / 100;
+    }
+    return Math.min(subtotalAfterItemDiscounts, discountVal || 0);
+  }, [discountType, discountVal, subtotalAfterItemDiscounts]);
+
+  const totalDiscount = totalItemDiscounts + calculatedInvoiceDiscount;
+  const grandTotal = Math.max(0, grossSubtotal - totalDiscount);
+
+  const totalQuantity = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  }, [cartItems]);
 
   // Default paid amount to grand total if not manually edited
   const paidVal = paidAmount === '' ? grandTotal : parseFloat(String(paidAmount)) || 0;
@@ -253,9 +371,22 @@ export const TestPOSPage: React.FC = () => {
         doctorName: customDoctorName.trim() || selectedDoctor?.name || 'Dr. Medical Officer',
 
         // Items & Financials
-        items: cartItems,
-        subtotal,
-        discountAmount: calculatedDiscount,
+        items: cartItems.map((item) => ({
+          testId: item.testId,
+          testName: item.testName,
+          category: item.category,
+          price: parseFloat(String(item.price)) || 0,
+          quantity: item.quantity || 1,
+          discountType: item.discountType || 'amount',
+          discountValue: item.discountValue || 0,
+          discountAmount: parseFloat(String(item.discountAmount || 0)),
+          finalAmount: parseFloat(String(item.finalAmount || 0)),
+          deliveryDate: item.deliveryDate || deliveryDate,
+          roomNumber: item.roomNumber,
+          sampleType: item.sampleType,
+        })),
+        subtotal: grossSubtotal,
+        discountAmount: totalDiscount,
         grandTotal,
         paidAmount: paidVal,
         dueAmount,
@@ -374,11 +505,11 @@ export const TestPOSPage: React.FC = () => {
         </div>
       )}
 
-      {/* Main Split Layout: Left Setup (7 Cols) + Right POS Terminal (5 Cols) */}
+      {/* Main Split Layout: Left Setup (5 Cols) + Right POS Terminal (7 Cols) */}
       <form onSubmit={handleSubmitOrder}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================= LEFT COLUMN: INTAKE & TEST SELECTOR (7 Cols) ================= */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* ================= LEFT COLUMN: INTAKE & TEST SELECTOR (5 Cols) ================= */}
+          <div className="lg:col-span-5 xl:col-span-5 space-y-6">
             {/* Card 1: Patient Selection / Registration */}
             <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
               <div className="flex items-center justify-between">
@@ -715,7 +846,8 @@ export const TestPOSPage: React.FC = () => {
                   </div>
                 ) : (
                   filteredTests.map((t) => {
-                    const isAdded = cartItems.some((item) => item.testId === t.id);
+                    const existingItem = cartItems.find((item) => item.testId === t.id);
+                    const isAdded = Boolean(existingItem);
 
                     return (
                       <div
@@ -753,7 +885,7 @@ export const TestPOSPage: React.FC = () => {
                                 : 'bg-slate-200 text-slate-700'
                             }`}
                           >
-                            {isAdded ? '✓ Added' : '+ Add'}
+                            {isAdded ? `✓ Added (${existingItem?.quantity || 1})` : '+ Add'}
                           </span>
                         </div>
                       </div>
@@ -764,147 +896,287 @@ export const TestPOSPage: React.FC = () => {
             </div>
           </div>
 
-          {/* ================= RIGHT COLUMN: LIVE POS TERMINAL (5 Cols) ================= */}
-          <div className="lg:col-span-5 sticky top-6">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+          {/* ================= RIGHT COLUMN: LIVE POS TERMINAL (7 Cols - Expanded) ================= */}
+          <div className="lg:col-span-7 xl:col-span-7 sticky top-6">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
               {/* Terminal Header */}
-              <div className="bg-slate-900 text-white p-5 space-y-1">
+              <div className="bg-slate-900 text-white p-6 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase font-bold tracking-widest text-primary">
+                  <span className="text-[11px] uppercase font-black tracking-widest text-primary">
                     Live Diagnostic POS Receipt
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-white">
-                    Counter #2 (Lab)
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {cartItems.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearCart}
+                        title="Clear all cart items"
+                        className="px-3 py-1 rounded-xl text-xs font-bold bg-white/10 hover:bg-rose-500/80 text-white transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        <span>Clear Cart</span>
+                      </button>
+                    )}
+                    <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-white/10 text-white font-bold">
+                      Counter #2 (Lab)
+                    </span>
+                  </div>
                 </div>
-                <h3 className="text-base font-black tracking-tight">
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                   NETRO DIAGNOSTICS & LAB BILLING
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Patient: {patientName || 'New Patient'} • {cartItems.length} Test(s)
+                <p className="text-xs sm:text-sm text-slate-300 font-medium">
+                  Patient: <span className="font-bold text-white">{patientName || 'New Patient'}</span> • {cartItems.length} Test(s) ({totalQuantity} Unit{totalQuantity > 1 ? 's' : ''})
                 </p>
               </div>
 
               {/* Itemized Live Bill Cart */}
-              <div className="p-5 space-y-4 text-xs">
+              <div className="p-6 space-y-5 text-xs sm:text-sm">
                 {/* Cart Items List */}
-                <div className="space-y-2 max-h-52 overflow-y-auto pr-1 pb-3 border-b border-dashed border-slate-200">
+                <div className="space-y-3 max-h-[380px] sm:max-h-[440px] overflow-y-auto pr-1.5 pb-3 border-b border-dashed border-slate-200">
                   {cartItems.length === 0 ? (
-                    <div className="py-6 text-center text-slate-400 text-xs">
-                      <FlaskConical className="h-6 w-6 text-slate-300 mx-auto mb-1" />
-                      <span>No tests selected yet. Click any test on the left to add.</span>
+                    <div className="py-12 text-center text-slate-400">
+                      <FlaskConical className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+                      <p className="font-bold text-slate-700 text-sm">No tests selected yet</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Click any diagnostic test on the left catalog to add to bill.</p>
                     </div>
                   ) : (
-                    cartItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100"
-                      >
-                        <div className="overflow-hidden">
-                          <span className="font-semibold text-slate-900 truncate block">
-                            {idx + 1}. {item.testName}
-                          </span>
-                          <span className="text-[10px] text-slate-400 block">
-                            {item.category} {item.roomNumber ? `• ${item.roomNumber}` : ''}
-                          </span>
+                    cartItems.map((item, idx) => {
+                      const unitPrice = parseFloat(String(item.price)) || 0;
+                      const qty = item.quantity || 1;
+                      const lineGross = unitPrice * qty;
+                      const itemDiscAmount = parseFloat(String(item.discountAmount || 0));
+                      const finalAmount = parseFloat(String(item.finalAmount || (lineGross - itemDiscAmount)));
+                      const itemDiscType = item.discountType || 'amount';
+
+                      return (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-2xl bg-slate-50/90 hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 space-y-3 transition-all shadow-2xs"
+                        >
+                          {/* Top row: test info and delete button */}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="overflow-hidden min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="h-5 w-5 rounded-full bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center shrink-0">
+                                  {idx + 1}
+                                </span>
+                                <span className="font-bold text-slate-900 truncate block text-sm sm:text-base">
+                                  {item.testName}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2.5 text-xs text-slate-500 pl-7 mt-0.5">
+                                <span className="font-medium">{item.category || 'Pathology'}</span>
+                                {item.roomNumber && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Room: {item.roomNumber}</span>
+                                  </>
+                                )}
+                                <span>•</span>
+                                <span className="font-bold text-slate-800">Rate: ৳{unitPrice.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFromCart(idx)}
+                              title="Remove test"
+                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {/* Bottom controls: Quantity (+/-) & Individual Line Discount & Line Total */}
+                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-3 border-t border-slate-200/70">
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider bg-slate-200/80 px-2 py-1 rounded-lg shrink-0">
+                                QTY
+                              </span>
+                              <div className="flex items-center border-2 border-slate-300 focus-within:border-primary rounded-xl bg-white overflow-hidden shadow-xs h-11 sm:h-12 transition">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItemQuantity(idx, qty - 1)}
+                                  disabled={qty <= 1}
+                                  className="w-10 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-xl font-black text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-25 transition cursor-pointer select-none active:scale-95"
+                                >
+                                  -
+                                </button>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={qty}
+                                  onChange={(e) =>
+                                    handleUpdateItemQuantity(idx, parseInt(e.target.value) || 1)
+                                  }
+                                  style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                                  className="w-14 sm:w-16 h-11 sm:h-12 text-center font-black text-slate-900 text-lg sm:text-xl focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateItemQuantity(idx, qty + 1)}
+                                  className="w-10 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-xl font-black text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer select-none active:scale-95"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Individual Discount Input & Toggle */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider bg-slate-200/80 px-2 py-1 rounded-lg shrink-0">
+                                DISC
+                              </span>
+                              <div className="flex items-center border-2 border-slate-300 focus-within:border-primary rounded-xl bg-white overflow-hidden shadow-xs h-11 sm:h-12 transition">
+                                <input
+                                  type="number"
+                                  min={0}
+                                  placeholder="0"
+                                  value={item.discountValue || ''}
+                                  onChange={(e) =>
+                                    handleUpdateItemDiscountValue(
+                                      idx,
+                                      parseFloat(e.target.value) || 0
+                                    )
+                                  }
+                                  style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                                  className="w-28 sm:w-36 h-11 sm:h-12 px-3 text-right font-black text-slate-900 text-lg sm:text-xl focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleItemDiscountType(idx)}
+                                  className="w-11 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-base sm:text-lg font-black bg-slate-100 text-slate-800 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer border-l-2 border-slate-200 shrink-0"
+                                  title="Toggle discount type (BDT / %)"
+                                >
+                                  {itemDiscType === 'amount' ? '৳' : '%'}
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Line Total */}
+                            <div className="text-right shrink-0 min-w-[95px] sm:ml-auto">
+                              <span className="text-lg sm:text-xl font-black text-slate-900 block font-mono">
+                                ৳{finalAmount.toFixed(2)}
+                              </span>
+                              {(qty > 1 || itemDiscAmount > 0) && (
+                                <span className="text-xs text-slate-400 block -mt-0.5 font-medium">
+                                  {itemDiscAmount > 0 ? (
+                                    <span className="text-emerald-600 font-bold">
+                                      (-৳{itemDiscAmount.toFixed(0)})
+                                    </span>
+                                  ) : (
+                                    <span>৳{unitPrice}×{qty}</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="font-bold text-slate-900 text-xs">
-                            ৳{parseFloat(String(item.price)).toFixed(2)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFromCart(idx)}
-                            className="p-1 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
 
                 {/* Subtotal & Discount Row */}
-                <div className="space-y-2 pb-4 border-b border-slate-100">
-                  <div className="flex justify-between text-slate-500 font-medium">
-                    <span>Subtotal Gross:</span>
-                    <span className="font-bold text-slate-800">
-                      ৳{subtotal.toFixed(2)}
+                <div className="space-y-3 pb-5 border-b border-slate-100 text-sm">
+                  <div className="flex justify-between text-slate-600 font-medium">
+                    <span>Gross Subtotal ({totalQuantity} unit{totalQuantity > 1 ? 's' : ''}):</span>
+                    <span className="font-bold text-slate-900 font-mono text-base">
+                      ৳{grossSubtotal.toFixed(2)}
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-600 font-medium">Special Discount:</span>
-                    <div className="flex items-center gap-1.5 w-40">
+                  {/* Individual Test Discounts Sum */}
+                  {totalItemDiscounts > 0 && (
+                    <div className="flex justify-between text-emerald-600 font-medium">
+                      <span>Per-Item Discounts Total:</span>
+                      <span className="font-bold font-mono text-base">-৳{totalItemDiscounts.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Invoice Level / Special Extra Discount */}
+                  <div className="flex items-center justify-between gap-3 pt-1">
+                    <span className="text-slate-600 font-medium">Special Invoice Disc:</span>
+                    <div className="flex items-center gap-2 w-56 sm:w-72">
                       <input
                         type="number"
                         min={0}
                         value={discountVal || ''}
                         onChange={(e) => setDiscountVal(parseFloat(e.target.value) || 0)}
                         placeholder="0"
-                        className="w-full h-8 px-2 rounded-lg border border-slate-200 text-xs text-right font-bold text-dark focus:outline-hidden focus:border-primary"
+                        style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                        className="w-full h-12 px-4 rounded-xl border-2 border-slate-300 text-lg text-right font-black text-slate-900 focus:outline-hidden focus:border-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setDiscountType(discountType === 'amount' ? 'percent' : 'amount')
                         }
-                        className="px-2 py-1 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 hover:bg-slate-200 transition cursor-pointer"
+                        className="px-5 h-12 rounded-xl bg-slate-100 text-base font-black text-slate-800 hover:bg-slate-200 transition cursor-pointer shrink-0 border-2 border-slate-200"
                       >
                         {discountType === 'amount' ? 'BDT' : '%'}
                       </button>
                     </div>
                   </div>
 
-                  {calculatedDiscount > 0 && (
+                  {calculatedInvoiceDiscount > 0 && (
                     <div className="flex justify-between text-emerald-600 font-semibold">
-                      <span>Discount Deducted:</span>
-                      <span>-৳{calculatedDiscount.toFixed(2)}</span>
+                      <span>Invoice Disc Deducted:</span>
+                      <span className="font-mono text-base font-bold">-৳{calculatedInvoiceDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Total Combined Discount if both exist */}
+                  {totalItemDiscounts > 0 && calculatedInvoiceDiscount > 0 && (
+                    <div className="flex justify-between text-slate-700 font-bold text-xs sm:text-sm pt-2 border-t border-slate-100">
+                      <span>Total Combined Discount:</span>
+                      <span className="text-emerald-700 font-mono text-base font-black">-৳{totalDiscount.toFixed(2)}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Grand Total Display */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-2 border-emerald-500/30 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+                    <span className="text-xs uppercase font-black tracking-widest text-slate-500 block">
                       Payable Grand Total
                     </span>
-                    <span className="text-xl font-black text-primary">
+                    <span className="text-2xl sm:text-4xl font-black text-emerald-700 font-mono tracking-tight">
                       ৳{grandTotal.toLocaleString()}
                     </span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-primary/10 text-primary font-mono">
+                  <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-primary/10 text-primary font-mono tracking-wider">
                     LAB POS
                   </span>
                 </div>
 
                 {/* Paid Amount Received Input & Presets */}
-                <div className="space-y-2 pt-1">
+                <div className="space-y-2.5 pt-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">
+                    <label className="text-xs sm:text-sm font-bold text-slate-700">
                       Amount Paid (BDT) *
                     </label>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleQuickPayment('full')}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                        className="text-xs font-bold px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
                       >
                         Full
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickPayment('half')}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                        className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer"
                       >
                         50%
                       </button>
                       <button
                         type="button"
                         onClick={() => handleQuickPayment('due')}
-                        className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 hover:bg-rose-100 transition cursor-pointer"
+                        className="text-xs font-bold px-3 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition cursor-pointer"
                       >
                         Due All
                       </button>
@@ -917,33 +1189,33 @@ export const TestPOSPage: React.FC = () => {
                     value={paidAmount}
                     onChange={(e) => setPaidAmount(e.target.value)}
                     placeholder={grandTotal ? String(grandTotal) : 'Enter paid amount'}
-                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm font-bold text-dark focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
+                    className="w-full h-12 px-4 rounded-xl border border-slate-200 text-base sm:text-lg font-black font-mono text-dark focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
                   />
                 </div>
 
                 {/* Balance Due Card */}
                 <div
-                  className={`p-3 rounded-xl flex items-center justify-between ${
+                  className={`p-4 rounded-xl flex items-center justify-between ${
                     dueAmount <= 0
                       ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
                       : 'bg-rose-50 text-rose-900 border border-rose-200'
                   }`}
                 >
-                  <span className="font-bold">
+                  <span className="font-bold text-sm sm:text-base">
                     {dueAmount <= 0 ? 'Fully Paid' : 'Remaining Due Balance:'}
                   </span>
-                  <span className="text-sm font-black font-mono">
+                  <span className="text-base sm:text-xl font-black font-mono">
                     ৳{dueAmount.toFixed(2)}
                   </span>
                 </div>
 
                 {/* Payment Method Selector */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
                     Payment Method
                   </label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="w-full h-11 text-sm font-medium">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -960,13 +1232,13 @@ export const TestPOSPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || cartItems.length === 0}
-                  className="w-full py-3.5 rounded-2xl bg-primary text-white font-black text-sm tracking-wide shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 rounded-2xl bg-primary text-white font-black text-base tracking-wide shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
-                      <Receipt className="h-4 w-4" />
+                      <Receipt className="h-5 w-5" />
                       <span>Complete Order & Print Slip</span>
                     </>
                   )}

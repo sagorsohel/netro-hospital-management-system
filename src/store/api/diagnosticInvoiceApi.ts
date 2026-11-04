@@ -6,6 +6,9 @@ export interface DiagnosticInvoiceItem {
   testName: string;
   category?: string;
   price: number | string;
+  quantity?: number;
+  discountType?: 'amount' | 'percent';
+  discountValue?: number;
   discountAmount?: number | string;
   finalAmount: number | string;
   deliveryDate?: string;

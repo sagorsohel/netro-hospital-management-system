@@ -12,16 +12,23 @@ export const HospitalHeader: React.FC<HospitalHeaderProps> = () => {
 
   return (
     <header className="w-full bg-white rounded-2xl px-6 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-slate-100/90 flex items-center justify-between gap-4 select-none shrink-0">
-      {/* Brand Logo & Medical Cross */}
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-2xl bg-[#EAF8F0] text-primary flex items-center justify-center font-black shadow-xs">
-          <Activity className="h-5 w-5 text-primary stroke-[2.5]" />
+      {/* Brand Logo & Eye Hospital Title */}
+      <Link to="/dashboard" className="flex items-center gap-3 cursor-pointer group">
+        <img
+          src="/logo.png"
+          alt="Netro Adhunik Eye Hospital Logo"
+          className="h-10 w-10 rounded-full object-cover shadow-xs border border-emerald-100 group-hover:scale-105 transition-transform"
+        />
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1.5">
+            <span className="text-base font-black tracking-tight text-dark">Netro Adhunik</span>
+            <span className="text-base font-bold tracking-tight text-primary">Eye Hospital</span>
+          </div>
+          <span className="text-[10px] font-semibold text-slate-400 -mt-0.5 tracking-tight">
+            নেত্র আধুনিক চক্ষু হাসপাতাল
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-lg font-black tracking-tight text-dark">Netro</span>
-          <span className="text-lg font-bold tracking-tight text-primary">Hospital</span>
-        </div>
-      </div>
+      </Link>
 
       {/* Center Search Input */}
       <div className="flex-1 max-w-lg mx-auto">

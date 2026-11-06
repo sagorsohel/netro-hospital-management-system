@@ -1,7 +1,7 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 
 
-export const BASE_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+export const BASE_API_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend.netropharmacy.com/api';
 
 /**
  * Token-based Axios Base API Client

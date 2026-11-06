@@ -6,7 +6,7 @@ import { Input } from '../../../components/ui/input';
 export const GeneralTab: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [formData, setFormData] = useState({
-    hospitalName: 'Netro Central Hospital Ltd.',
+    hospitalName: 'Netro Adhunik Eye Hospital Ltd.',
     branchName: 'Central Campus (Branch #1)',
     hotline: '+880 1700-000001',
     ambulanceHotline: '+880 1700-000002',

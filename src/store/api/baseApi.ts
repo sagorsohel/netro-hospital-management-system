@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../index';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://backend.netropharmacy.com/api';
 
 export const baseApi = createApi({
   reducerPath: 'baseApi',

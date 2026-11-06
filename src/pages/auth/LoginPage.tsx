@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
   const [loginMutation, { isLoading: isLoginLoading }] = useLoginMutation();
 
-  const [email, setEmail] = useState("admin@netro.com");
+  const [email, setEmail] = useState("admin@gmail.com");
   const [password, setPassword] = useState("12345678");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -89,9 +89,9 @@ export const LoginPage: React.FC = () => {
   const handleQuickDemo = (role: "admin" | "pharmacy") => {
     setActiveDemo(role);
     if (role === "admin") {
-      setEmail("admin@netro.com");
+      setEmail("admin@gmail.com");
       setPassword("12345678");
-      performLogin("admin@netro.com", "12345678");
+      performLogin("admin@gmail.com", "12345678");
     } else {
       setEmail("pharmacy@netro.com");
       setPassword("12345678");
@@ -125,25 +125,24 @@ export const LoginPage: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-400/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 space-y-6">
-            {/* Netro Hospital Brand Logo */}
+            {/* Netro Adhunik Eye Hospital Brand Logo */}
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-md border border-white/25">
-                <Activity className="h-6 w-6 text-white stroke-[2.5]" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="Netro Adhunik Eye Hospital Logo"
+                className="h-12 w-12 rounded-full object-cover shadow-md bg-white p-0.5 border border-white/40 shrink-0"
+              />
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span className="text-xl font-extrabold tracking-tight text-white">
-                    Netro
+                    Netro Adhunik
                   </span>
                   <span className="text-xl font-bold tracking-tight text-emerald-100">
-                    Hospital
-                  </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/20 uppercase tracking-wider">
-                    HMS
+                    Eye Hospital
                   </span>
                 </div>
-                <p className="text-xs text-emerald-100/80 font-medium">
-                  Clinical Healthcare Ecosystem
+                <p className="text-xs text-emerald-100/90 font-medium">
+                  নেত্র আধুনিক চক্ষু হাসপাতাল
                 </p>
               </div>
             </div>
@@ -375,11 +374,11 @@ export const LoginPage: React.FC = () => {
                     <div className="text-xs font-bold text-slate-800 truncate flex items-center gap-1.5">
                       <span>Hospital Admin</span>
                       <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-primary/15 text-primary">
-                        Director
+                        Super Admin
                       </span>
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
-                      admin@netro.com
+                      admin@gmail.com
                     </div>
                   </div>
                 </button>
@@ -452,17 +451,17 @@ export const LoginPage: React.FC = () => {
             <div className="space-y-2 text-xs">
               <div
                 onClick={() => {
-                  setEmail("admin@netro.com");
+                  setEmail("admin@gmail.com");
                   setPassword("12345678");
                   setShowHelpModal(false);
                 }}
                 className="p-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200/80 cursor-pointer transition-colors"
               >
                 <div className="font-semibold text-slate-800">
-                  Hospital Admin (Director)
+                  Hospital Admin / Super Admin
                 </div>
                 <div className="text-slate-500 text-[11px]">
-                  Email: <code className="text-primary font-mono">admin@netro.com</code>
+                  Email: <code className="text-primary font-mono">admin@gmail.com</code>
                 </div>
                 <div className="text-slate-500 text-[11px]">
                   Password: <code className="text-slate-700 font-mono">12345678</code>

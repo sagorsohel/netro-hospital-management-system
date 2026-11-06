@@ -127,19 +127,14 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
             .brand {
               display: flex;
               align-items: center;
-              gap: 10px;
+              gap: 12px;
             }
-            .brand-icon {
-              width: 38px;
-              height: 38px;
-              background-color: #008A3D;
-              color: #ffffff;
-              border-radius: 8px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-weight: 900;
-              font-size: 18px;
+            .brand-logo {
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              object-fit: cover;
+              border: 1px solid #e2e8f0;
             }
             .hospital-title {
               font-size: 18px;
@@ -326,9 +321,9 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
           <div class="header">
             <div>
               <div class="brand">
-                <div class="brand-icon">🔬</div>
+                <img src="/logo.png" alt="Netro Adhunik Eye Hospital" class="brand-logo" />
                 <div>
-                  <h1 class="hospital-title">NETRO CENTRAL HOSPITAL</h1>
+                  <h1 class="hospital-title">Netro Adhunik Eye Hospital</h1>
                   <p class="hospital-subtitle">PATHOLOGY & DIAGNOSTIC INVESTIGATION INVOICE</p>
                 </div>
               </div>
@@ -435,7 +430,7 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
             <div>
               <div class="signature-line"></div>
               <p class="signature-title">Medical Technologist / Cashier</p>
-              <p class="signature-sub">Netro Pathology Laboratory</p>
+              <p class="signature-sub">Netro Adhunik Eye Hospital Lab</p>
             </div>
             <div>
               <div class="signature-line"></div>
@@ -508,12 +503,14 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-4 border-b-2 border-slate-100">
             <div>
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-primary text-white flex items-center justify-center font-black text-lg shrink-0">
-                  <FlaskConical className="h-5 w-5 sm:h-6 sm:w-6" />
-                </div>
+                <img
+                  src="/logo.png"
+                  alt="Netro Adhunik Eye Hospital"
+                  className="h-10 w-10 sm:h-12 sm:w-12 rounded-full object-cover shrink-0 border border-emerald-100 shadow-xs"
+                />
                 <div>
                   <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-900 leading-tight">
-                    NETRO CENTRAL HOSPITAL
+                    Netro Adhunik Eye Hospital
                   </h1>
                   <p className="text-[10px] sm:text-[11px] font-semibold text-primary tracking-wide">
                     PATHOLOGY & DIAGNOSTIC INVESTIGATION INVOICE
@@ -730,7 +727,7 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
             <div>
               <div className="w-28 sm:w-36 mx-auto border-b border-slate-400 mb-1"></div>
               <p className="font-semibold text-slate-700">Medical Technologist / Cashier</p>
-              <p className="text-[10px] text-slate-400">Netro Central Hospital Lab</p>
+              <p className="text-[10px] text-slate-400">Netro Adhunik Eye Hospital Lab</p>
             </div>
             <div>
               <div className="w-28 sm:w-36 mx-auto border-b border-slate-400 mb-1"></div>

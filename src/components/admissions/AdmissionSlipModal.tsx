@@ -11,14 +11,25 @@ interface AdmissionSlipModalProps {
   isOpen: boolean;
   onClose: () => void;
   admission: InpatientAdmission | null;
+  autoPrint?: boolean;
 }
 
 export const AdmissionSlipModal: React.FC<AdmissionSlipModalProps> = ({
   isOpen,
   onClose,
   admission,
+  autoPrint = false,
 }) => {
   const printAreaRef = useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (isOpen && admission && autoPrint) {
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, admission, autoPrint]);
 
   if (!isOpen || !admission) return null;
 

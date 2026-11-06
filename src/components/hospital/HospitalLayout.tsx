@@ -18,7 +18,7 @@ export const HospitalLayout: React.FC = () => {
 
         {/* Right Scrollable Dashboard Canvas - Content Scrolls smoothly via Outlet */}
         <main
-          className="flex-1 h-full overflow-y-auto no-scrollbar pr-1 pb-10"
+          className="flex-1 h-full overflow-y-auto no-scrollbar pr-1"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           <Outlet />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -22,6 +22,15 @@ import {
   Stethoscope,
   Clock,
   Sparkles,
+  ShieldCheck,
+  Wallet,
+  DollarSign,
+  Check,
+  X,
+  BadgePercent,
+  Phone,
+  ChevronDown,
+  User,
 } from 'lucide-react';
 import {
   Select,
@@ -52,10 +61,8 @@ export const TestPOSPage: React.FC = () => {
 
   const [createInvoice, { isLoading: isSubmitting }] = useCreateDiagnosticInvoiceMutation();
 
-  // Intake Mode: 'new' vs 'existing'
-  const [intakeMode, setIntakeMode] = useState<'new' | 'existing'>(
-    prefillPatientId ? 'existing' : 'new'
-  );
+  // Intake Mode: 'existing' vs 'new' (default to existing phone search for fastest POS flow)
+  const [intakeMode, setIntakeMode] = useState<'new' | 'existing'>('existing');
 
   // Form State - Patient Info
   const [selectedPatientId, setSelectedPatientId] = useState<string>(prefillPatientId || '');
@@ -93,6 +100,17 @@ export const TestPOSPage: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState('Tomorrow 4:00 PM');
   const [notes, setNotes] = useState('');
 
+  // Synchronize deliveryDate with all line items in the cart
+  const handleUpdateDeliveryDate = (val: string) => {
+    setDeliveryDate(val);
+    setCartItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        deliveryDate: val,
+      }))
+    );
+  };
+
   // Slip Modal State
   const [createdInvoice, setCreatedInvoice] = useState<DiagnosticInvoice | null>(null);
   const [isSlipOpen, setIsSlipOpen] = useState(false);
@@ -111,6 +129,7 @@ export const TestPOSPage: React.FC = () => {
     if (found) {
       setPatientName(found.name || '');
       setPatientPhone(found.phone || '');
+      setPatientSearchTerm(found.phone ? `${found.phone} — ${found.name}` : found.name);
       setPatientAge(found.age ? String(found.age) : '');
       setPatientGender(found.gender || 'Male');
       setPatientBloodGroup(found.bloodGroup || 'O+');
@@ -131,6 +150,81 @@ export const TestPOSPage: React.FC = () => {
       handleSelectExistingPatient(prefillPatientId);
     }
   }, [prefillPatientId, patientsData]);
+
+  // Patient search state for phone number / name live search
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+  const [isPatientDropdownOpen, setIsPatientDropdownOpen] = useState(false);
+  const patientSearchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Diagnostic Test fast search state
+  const testSearchContainerRef = useRef<HTMLDivElement>(null);
+  const [isTestDropdownOpen, setIsTestDropdownOpen] = useState(false);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        patientSearchContainerRef.current &&
+        !patientSearchContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsPatientDropdownOpen(false);
+      }
+      if (
+        testSearchContainerRef.current &&
+        !testSearchContainerRef.current.contains(e.target as Node)
+      ) {
+        setIsTestDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filtered patients for search with phone number, name, or patient ID
+  const filteredPatients = useMemo(() => {
+    const list = patientsData?.data || [];
+    if (!patientSearchTerm.trim()) return list.slice(0, 10);
+    const q = patientSearchTerm.toLowerCase().trim();
+    return list.filter((p) => {
+      const phone = p.phone ? p.phone.toLowerCase() : '';
+      const name = p.name ? p.name.toLowerCase() : '';
+      const patId = p.patientId ? p.patientId.toLowerCase() : '';
+      return phone.includes(q) || name.includes(q) || patId.includes(q);
+    }).slice(0, 15);
+  }, [patientsData, patientSearchTerm]);
+
+  // Pick existing patient from phone/name search
+  const handlePickPatient = (p: any) => {
+    handleSelectExistingPatient(p.id);
+    setPatientSearchTerm(p.phone ? `${p.phone} — ${p.name}` : p.name);
+    setIsPatientDropdownOpen(false);
+  };
+
+  // Clear selected patient
+  const handleClearPatient = () => {
+    setSelectedPatientId('');
+    setPatientSearchTerm('');
+    setPatientName('');
+    setPatientPhone('');
+    setPatientAge('');
+    setPatientGender('Male');
+    setPatientBloodGroup('O+');
+    setPatientAddress('');
+    setMaritalStatus('Single');
+  };
+
+  // Popular / Frequently Ordered Diagnostic Tests for 1-click addition
+  const popularTests = useMemo(() => {
+    const list = testsData?.data || [];
+    const popularCodes = ['cbc', 'lipid', 'glucose', 'creatinine', 'usg', 'ecg', 'urine', 'x-ray', 'rbs'];
+    return list.filter((t) =>
+      popularCodes.some(
+        (code) =>
+          t.name.toLowerCase().includes(code) ||
+          (t.code && t.code.toLowerCase().includes(code))
+      )
+    ).slice(0, 6);
+  }, [testsData]);
 
   // Find Selected Doctor
   const selectedDoctor = useMemo(() => {
@@ -185,7 +279,7 @@ export const TestPOSPage: React.FC = () => {
         discountValue: 0,
         discountAmount: 0,
         finalAmount: priceNum,
-        deliveryDate: t.deliveryTime || 'Tomorrow 4:00 PM',
+        deliveryDate: deliveryDate || t.deliveryTime || 'Tomorrow 4:00 PM',
         roomNumber: t.roomNumber,
         sampleType: t.sampleType,
       },
@@ -381,7 +475,7 @@ export const TestPOSPage: React.FC = () => {
           discountValue: item.discountValue || 0,
           discountAmount: parseFloat(String(item.discountAmount || 0)),
           finalAmount: parseFloat(String(item.finalAmount || 0)),
-          deliveryDate: item.deliveryDate || deliveryDate,
+          deliveryDate: deliveryDate || item.deliveryDate || 'Tomorrow 4:00 PM',
           roomNumber: item.roomNumber,
           sampleType: item.sampleType,
         })),
@@ -412,83 +506,22 @@ export const TestPOSPage: React.FC = () => {
       alert(err?.data?.message || 'Failed to complete diagnostic order.');
     }
   };
-
   return (
-    <div className="space-y-6 pb-12">
-      {/* Top Header & Breadcrumbs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <div>
-          <button
-            onClick={() => navigate('/patients')}
-            type="button"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-primary transition mb-1 cursor-pointer"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Back to Patients Directory</span>
-          </button>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-dark">
-              Diagnostic & Lab Test POS Terminal
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary/10 text-primary uppercase tracking-wider">
-              Pathology & Imaging Desk
-            </span>
-          </div>
-          <p className="text-xs text-slate-400">
-            Intake patient, select pathology & diagnostic tests, apply discounts, collect advance or manage dues, and print A4 voucher.
-          </p>
-        </div>
-
-        {/* Navigation & Counter Info */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/tests/invoices')}
-            type="button"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-primary hover:border-primary/40 text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <Receipt className="h-4 w-4" />
-            <span>All Lab Invoices</span>
-          </button>
-          <div className="text-right hidden sm:block">
-            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              Diagnostic Terminal
-            </p>
-            <p className="text-xs font-bold text-dark font-mono">
-              {new Date().toLocaleDateString('en-GB', {
-                weekday: 'short',
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-              })}
-            </p>
-          </div>
-          <div className="h-9 w-9 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-            <FlaskConical className="h-5 w-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Success Banner if Created */}
+    <div className="h-full flex flex-col overflow-hidden max-w-[1600px] mx-auto gap-2 select-none">
+      {/* Success Notification Bar (Only shown upon invoice generation) */}
       {successInfo && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-6 w-6" />
-            </div>
-            <div>
-              <h4 className="text-sm font-bold text-emerald-950">
-                Diagnostic Order Complete! Voucher #{successInfo.invoiceNo}
-              </h4>
-              <p className="text-xs text-emerald-700">
-                Patient Profile linked: <strong className="font-mono">{successInfo.patientId}</strong>
-              </p>
-            </div>
+        <div className="shrink-0 p-2 sm:p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 shadow-xs flex items-center justify-between gap-3 animate-in fade-in">
+          <div className="flex items-center gap-2 text-xs text-emerald-950">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              Invoice Confirmed: <strong className="font-mono font-semibold">#{successInfo.invoiceNo}</strong> | Linked Patient: <strong className="font-mono font-semibold">{successInfo.patientId}</strong>
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsSlipOpen(true)}
               type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary-hover shadow-2xs cursor-pointer"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Print A4 Slip</span>
@@ -496,234 +529,215 @@ export const TestPOSPage: React.FC = () => {
             <button
               onClick={() => navigate(`/patients/${successInfo.patientInternalId}`)}
               type="button"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-dark border border-slate-200 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
-              <Eye className="h-3.5 w-3.5" />
-              <span>View Profile</span>
+              View Profile
             </button>
           </div>
         </div>
       )}
 
-      {/* Main Split Layout: Left Setup (5 Cols) + Right POS Terminal (7 Cols) */}
-      <form onSubmit={handleSubmitOrder}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* ================= LEFT COLUMN: INTAKE & TEST SELECTOR (5 Cols) ================= */}
-          <div className="lg:col-span-5 xl:col-span-5 space-y-6">
-            {/* Card 1: Patient Selection / Registration */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                    <UserPlus className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-dark">
-                      1. Patient Intake & Digital Profile
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Auto-registers new permanent profile or select existing patient
-                    </p>
-                  </div>
-                </div>
+      {/* Main Single-Screen POS Form */}
+      <form onSubmit={handleSubmitOrder} className="flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+        {/* ================= 1. FIXED TOP COMPACT PATIENT & DOCTOR BAR (shrink-0) ================= */}
+        {selectedPatientId ? (
+          /* Ultra Compact 1-Line Loaded Patient Pill */
+          <div className="shrink-0 bg-white rounded-xl p-2 sm:px-3 border border-emerald-200/90 bg-emerald-50/70 shadow-2xs flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => navigate('/patients')}
+                type="button"
+                className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-primary transition font-medium cursor-pointer mr-1"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Patients</span>
+              </button>
+              <span className="text-slate-300">|</span>
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span className="font-semibold text-emerald-950">{patientName}</span>
+              <span className="font-mono font-medium text-emerald-800 flex items-center gap-1">
+                <Phone className="h-3 w-3 text-emerald-600" />
+                {patientPhone}
+              </span>
+              <span className="font-mono text-[11px] px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                {selectedPatientId}
+              </span>
+              <span className="text-slate-500">
+                • {patientGender}, {patientAge || 'N/A'} yrs • {patientBloodGroup}
+              </span>
+              {patientAddress && <span className="text-slate-500 truncate max-w-xs">• {patientAddress}</span>}
+              <span className="text-slate-700 font-medium pl-1 border-l border-emerald-200">
+                Doc: {selectedDoctor?.name || customDoctorName || 'Hospital Duty Doctor'}
+              </span>
+              <div className="flex items-center gap-1 pl-1 border-l border-emerald-200 text-emerald-950 font-semibold">
+                <Clock className="h-3 w-3 text-emerald-700" />
+                <span>Delivery:</span>
+                <input
+                  type="text"
+                  value={deliveryDate}
+                  onChange={(e) => handleUpdateDeliveryDate(e.target.value)}
+                  className="h-6 w-36 px-1.5 rounded border border-emerald-300 bg-white text-xs font-semibold text-emerald-950 focus:outline-hidden"
+                />
+              </div>
+            </div>
 
-                {/* Intake Mode Switch */}
-                <div className="flex p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleClearPatient}
+                className="text-xs text-emerald-800 hover:text-rose-600 underline font-medium cursor-pointer"
+              >
+                Change Patient
+              </button>
+              <span className="text-slate-300">|</span>
+              <button
+                onClick={() => navigate('/tests/invoices')}
+                type="button"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:text-primary text-xs font-medium transition cursor-pointer"
+              >
+                <Receipt className="h-3 w-3 text-slate-400" />
+                <span>Invoices</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="shrink-0 bg-white rounded-xl p-2 sm:p-2.5 border border-slate-200/90 shadow-2xs space-y-2">
+            {/* Header Row */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/patients')}
+                  type="button"
+                  className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-primary transition font-medium cursor-pointer"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  <span>Patients</span>
+                </button>
+                <span className="text-slate-300">|</span>
+                <span className="font-semibold text-xs text-slate-900">Lab POS Terminal</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Counter #2 Active
+                </span>
+              </div>
+
+              {/* Mode Switcher Pills & Invoice Link */}
+              <div className="flex items-center gap-2">
+                <div className="flex p-0.5 bg-slate-100 rounded-lg text-xs font-medium border border-slate-200/70">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIntakeMode('existing');
+                      setIsPatientDropdownOpen(false);
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                      intakeMode === 'existing'
+                        ? 'bg-white text-primary shadow-xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Search className="h-3 w-3" />
+                    <span>Existing Patient</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       setIntakeMode('new');
-                      setSelectedPatientId('');
+                      handleClearPatient();
+                      setIsPatientDropdownOpen(false);
                     }}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                       intakeMode === 'new'
-                        ? 'bg-white text-primary shadow-xs font-bold'
-                        : 'text-slate-500 hover:text-dark'
+                        ? 'bg-white text-primary shadow-xs font-semibold'
+                        : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    + New Patient
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIntakeMode('existing')}
-                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                      intakeMode === 'existing'
-                        ? 'bg-white text-primary shadow-xs font-bold'
-                        : 'text-slate-500 hover:text-dark'
-                    }`}
-                  >
-                    Existing Patient
+                    <UserPlus className="h-3 w-3" />
+                    <span>+ New Patient</span>
                   </button>
                 </div>
-              </div>
 
-              {/* If Existing Patient Mode */}
-              {intakeMode === 'existing' && (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
-                  <label className="block text-xs font-bold text-slate-700">
-                    Search & Select Registered Patient *
-                  </label>
-                  <Select
-                    value={selectedPatientId}
-                    onValueChange={handleSelectExistingPatient}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="-- Choose registered patient --" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {patientsData?.data?.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name} ({p.patientId}) - {p.phone}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {selectedPatientId && (
-                    <div className="text-xs text-primary font-semibold flex items-center gap-1.5 pt-1">
-                      <CheckCircle2 className="h-4 w-4" />
-                      <span>Patient found! Information auto-populated below.</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Patient Fields Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Patient Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="e.g. Ruhul Amin"
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Contact Phone Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                    placeholder="e.g. +880 1718-445566"
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Age (Yrs)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={patientAge}
-                      onChange={(e) => setPatientAge(e.target.value)}
-                      placeholder="e.g. 38"
-                      className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Gender
-                    </label>
-                    <Select value={patientGender} onValueChange={setPatientGender}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Blood Group
-                    </label>
-                    <Select value={patientBloodGroup} onValueChange={setPatientBloodGroup}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      Marital Status
-                    </label>
-                    <Select value={maritalStatus} onValueChange={setMaritalStatus}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Single">Single</SelectItem>
-                        <SelectItem value="Married">Married</SelectItem>
-                        <SelectItem value="Widowed">Widowed</SelectItem>
-                        <SelectItem value="Divorced">Divorced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Address / Area
-                  </label>
-                  <input
-                    type="text"
-                    value={patientAddress}
-                    onChange={(e) => setPatientAddress(e.target.value)}
-                    placeholder="e.g. Tejgaon Industrial Area, Dhaka"
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition"
-                  />
-                </div>
+                <button
+                  onClick={() => navigate('/tests/invoices')}
+                  type="button"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-slate-300 bg-white text-slate-700 hover:text-primary text-xs font-medium transition cursor-pointer"
+                >
+                  <Receipt className="h-3 w-3 text-slate-400" />
+                  <span>Invoices</span>
+                </button>
               </div>
             </div>
 
-            {/* Card 2: Referring Physician & Specimen Details */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                  <Stethoscope className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-dark">
-                    2. Referring Doctor & Delivery Schedule
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Assign doctor name and target report delivery time
-                  </p>
-                </div>
-              </div>
+            {/* Existing Patient Search Row */}
+            {intakeMode === 'existing' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                <div ref={patientSearchContainerRef} className="sm:col-span-6 relative">
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary pointer-events-none" />
+                    <input
+                      type="text"
+                      value={patientSearchTerm}
+                      onChange={(e) => {
+                        setPatientSearchTerm(e.target.value);
+                        setIsPatientDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsPatientDropdownOpen(true)}
+                      placeholder="Type phone number (017...), patient ID (P-1001), or name..."
+                      className="w-full h-8.5 pl-9 pr-8 rounded-lg border border-slate-300 focus:border-primary text-xs font-normal text-slate-900 placeholder:text-slate-400 focus:outline-hidden transition shadow-2xs"
+                    />
+                    {patientSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={handleClearPatient}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Select Hospital Doctor
-                  </label>
+                  {/* Instant Floating Dropdown */}
+                  {isPatientDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl max-h-56 overflow-y-auto z-40 p-1.5 space-y-1">
+                      {patientsLoading ? (
+                        <div className="py-4 text-center text-xs text-slate-500">Loading patients...</div>
+                      ) : filteredPatients.length === 0 ? (
+                        <div className="py-3 px-2 text-center text-xs text-slate-500">
+                          <span>No patient found matching "{patientSearchTerm}". </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIntakeMode('new');
+                              setPatientPhone(patientSearchTerm);
+                              setIsPatientDropdownOpen(false);
+                            }}
+                            className="text-primary font-medium hover:underline"
+                          >
+                            + Register New
+                          </button>
+                        </div>
+                      ) : (
+                        filteredPatients.map((p) => (
+                          <div
+                            key={p.id}
+                            onClick={() => handlePickPatient(p)}
+                            className="p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-2 text-xs"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-semibold text-slate-900 mr-2">{p.name}</span>
+                              <span className="font-mono text-primary font-medium mr-2">{p.phone}</span>
+                              <span className="font-mono text-[10px] text-slate-500">#{p.patientId}</span>
+                            </div>
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 shrink-0">Select</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Doctor Select */}
+                <div className="sm:col-span-3">
                   <Select
                     value={selectedDoctorId}
                     onValueChange={(val) => {
@@ -732,12 +746,12 @@ export const TestPOSPage: React.FC = () => {
                       if (d) setCustomDoctorName(d.name);
                     }}
                   >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="-- Select Doctor on duty --" />
+                    <SelectTrigger className="w-full h-8.5 bg-white border-slate-300 text-xs">
+                      <SelectValue placeholder="-- Ref Doctor --" />
                     </SelectTrigger>
                     <SelectContent>
                       {doctorsData?.data?.map((doc) => (
-                        <SelectItem key={doc.id} value={doc.id}>
+                        <SelectItem key={doc.id} value={doc.id} className="text-xs">
                           {doc.name} ({doc.department})
                         </SelectItem>
                       ))}
@@ -745,505 +759,562 @@ export const TestPOSPage: React.FC = () => {
                   </Select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Or External Doctor Name
-                  </label>
-                  <input
-                    type="text"
-                    value={customDoctorName}
-                    onChange={(e) => setCustomDoctorName(e.target.value)}
-                    placeholder="e.g. Dr. Kazi Shahed (Consultant)"
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Report Expected Delivery Date / Time
-                  </label>
+                {/* Expected Delivery */}
+                <div className="sm:col-span-4 flex items-center gap-1 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
+                  <Clock className="h-3.5 w-3.5 text-primary ml-1 shrink-0" />
                   <input
                     type="text"
                     value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    placeholder="e.g. Tomorrow 4:00 PM, Same Day (4 Hours)"
-                    className="w-full h-10 px-3.5 rounded-xl border border-slate-200 text-xs sm:text-sm text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition"
+                    onChange={(e) => handleUpdateDeliveryDate(e.target.value)}
+                    placeholder="Delivery date/time"
+                    className="w-full h-7 px-2 rounded-md bg-white border border-slate-300 text-xs font-semibold text-slate-900 focus:outline-hidden focus:border-primary"
                   />
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3: Diagnostic Tests Catalog & Selection */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-                    <FlaskConical className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-dark">
-                      3. Select Diagnostic & Lab Tests *
-                    </h3>
-                    <p className="text-[11px] text-slate-400">
-                      Search and click to add tests into the active billing cart
-                    </p>
-                  </div>
-                </div>
-
-                <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 font-mono">
-                  {cartItems.length} Added
-                </span>
-              </div>
-
-              {/* Search & Category Filter Pills */}
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <input
-                    type="text"
-                    value={testSearch}
-                    onChange={(e) => setTestSearch(e.target.value)}
-                    placeholder="Search test name (CBC, USG, MRI, Glucose, etc.)..."
-                    className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-200 text-xs text-dark placeholder:text-slate-400 focus:outline-hidden focus:border-primary transition"
-                  />
-                </div>
-
-                {/* Category Pills */}
-                <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-1">
                   <button
                     type="button"
-                    onClick={() => setSelectedCategory('all')}
-                    className={`px-3 py-1 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                      selectedCategory === 'all'
-                        ? 'bg-primary text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    onClick={() => handleUpdateDeliveryDate('Today 8:00 PM')}
+                    className={`px-1.5 h-7 rounded text-[10px] font-medium transition cursor-pointer shrink-0 ${
+                      deliveryDate === 'Today 8:00 PM' ? 'bg-primary text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
                     }`}
                   >
-                    All Categories
+                    Today
                   </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                        selectedCategory === cat
-                          ? 'bg-primary text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateDeliveryDate('Tomorrow 4:00 PM')}
+                    className={`px-1.5 h-7 rounded text-[10px] font-medium transition cursor-pointer shrink-0 ${
+                      deliveryDate === 'Tomorrow 4:00 PM' ? 'bg-primary text-white font-bold' : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    Tmrw
+                  </button>
                 </div>
               </div>
-
-              {/* Tests Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-80 overflow-y-auto pr-1">
-                {filteredTests.length === 0 ? (
-                  <div className="col-span-2 py-8 text-center text-slate-400 text-xs">
-                    No diagnostic tests found matching your search.
-                  </div>
-                ) : (
-                  filteredTests.map((t) => {
-                    const existingItem = cartItems.find((item) => item.testId === t.id);
-                    const isAdded = Boolean(existingItem);
-
-                    return (
-                      <div
-                        key={t.id}
-                        onClick={() => handleAddTestToCart(t)}
-                        className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isAdded
-                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
-                            : 'bg-slate-50/70 hover:bg-slate-100/80 border-slate-200/80'
-                        }`}
-                      >
-                        <div className="space-y-0.5 overflow-hidden">
-                          <h4 className="text-xs font-bold truncate text-slate-900">
-                            {t.name}
-                          </h4>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                            <span>{t.category}</span>
-                            {t.roomNumber && (
-                              <>
-                                <span>•</span>
-                                <span>{t.roomNumber}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-primary block">
-                            ৳{parseFloat(String(t.price)).toLocaleString()}
-                          </span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-0.5 ${
-                              isAdded
-                                ? 'bg-emerald-200 text-emerald-900'
-                                : 'bg-slate-200 text-slate-700'
-                            }`}
-                          >
-                            {isAdded ? `✓ Added (${existingItem?.quantity || 1})` : '+ Add'}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ================= RIGHT COLUMN: LIVE POS TERMINAL (7 Cols - Expanded) ================= */}
-          <div className="lg:col-span-7 xl:col-span-7 sticky top-6">
-            <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-              {/* Terminal Header */}
-              <div className="bg-slate-900 text-white p-6 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] uppercase font-black tracking-widest text-primary">
-                    Live Diagnostic POS Receipt
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {cartItems.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleClearCart}
-                        title="Clear all cart items"
-                        className="px-3 py-1 rounded-xl text-xs font-bold bg-white/10 hover:bg-rose-500/80 text-white transition cursor-pointer flex items-center gap-1.5"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        <span>Clear Cart</span>
-                      </button>
-                    )}
-                    <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-white/10 text-white font-bold">
-                      Counter #2 (Lab)
-                    </span>
-                  </div>
-                </div>
-                <h3 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                  NETRO DIAGNOSTICS & LAB BILLING
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-300 font-medium">
-                  Patient: <span className="font-bold text-white">{patientName || 'New Patient'}</span> • {cartItems.length} Test(s) ({totalQuantity} Unit{totalQuantity > 1 ? 's' : ''})
-                </p>
-              </div>
-
-              {/* Itemized Live Bill Cart */}
-              <div className="p-6 space-y-5 text-xs sm:text-sm">
-                {/* Cart Items List */}
-                <div className="space-y-3 max-h-[380px] sm:max-h-[440px] overflow-y-auto pr-1.5 pb-3 border-b border-dashed border-slate-200">
-                  {cartItems.length === 0 ? (
-                    <div className="py-12 text-center text-slate-400">
-                      <FlaskConical className="h-10 w-10 text-slate-300 mx-auto mb-2" />
-                      <p className="font-bold text-slate-700 text-sm">No tests selected yet</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Click any diagnostic test on the left catalog to add to bill.</p>
-                    </div>
-                  ) : (
-                    cartItems.map((item, idx) => {
-                      const unitPrice = parseFloat(String(item.price)) || 0;
-                      const qty = item.quantity || 1;
-                      const lineGross = unitPrice * qty;
-                      const itemDiscAmount = parseFloat(String(item.discountAmount || 0));
-                      const finalAmount = parseFloat(String(item.finalAmount || (lineGross - itemDiscAmount)));
-                      const itemDiscType = item.discountType || 'amount';
-
-                      return (
-                        <div
-                          key={idx}
-                          className="p-4 rounded-2xl bg-slate-50/90 hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 space-y-3 transition-all shadow-2xs"
-                        >
-                          {/* Top row: test info and delete button */}
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="overflow-hidden min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="h-5 w-5 rounded-full bg-slate-200 text-slate-700 text-xs font-black flex items-center justify-center shrink-0">
-                                  {idx + 1}
-                                </span>
-                                <span className="font-bold text-slate-900 truncate block text-sm sm:text-base">
-                                  {item.testName}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2.5 text-xs text-slate-500 pl-7 mt-0.5">
-                                <span className="font-medium">{item.category || 'Pathology'}</span>
-                                {item.roomNumber && (
-                                  <>
-                                    <span>•</span>
-                                    <span>Room: {item.roomNumber}</span>
-                                  </>
-                                )}
-                                <span>•</span>
-                                <span className="font-bold text-slate-800">Rate: ৳{unitPrice.toLocaleString()}</span>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveFromCart(idx)}
-                              title="Remove test"
-                              className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-
-                          {/* Bottom controls: Quantity (+/-) & Individual Line Discount & Line Total */}
-                          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 pt-3 border-t border-slate-200/70">
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider bg-slate-200/80 px-2 py-1 rounded-lg shrink-0">
-                                QTY
-                              </span>
-                              <div className="flex items-center border-2 border-slate-300 focus-within:border-primary rounded-xl bg-white overflow-hidden shadow-xs h-11 sm:h-12 transition">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateItemQuantity(idx, qty - 1)}
-                                  disabled={qty <= 1}
-                                  className="w-10 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-xl font-black text-slate-700 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-25 transition cursor-pointer select-none active:scale-95"
-                                >
-                                  -
-                                </button>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={qty}
-                                  onChange={(e) =>
-                                    handleUpdateItemQuantity(idx, parseInt(e.target.value) || 1)
-                                  }
-                                  style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
-                                  className="w-14 sm:w-16 h-11 sm:h-12 text-center font-black text-slate-900 text-lg sm:text-xl focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateItemQuantity(idx, qty + 1)}
-                                  className="w-10 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-xl font-black text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition cursor-pointer select-none active:scale-95"
-                                >
-                                  +
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Individual Discount Input & Toggle */}
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-slate-700 uppercase tracking-wider bg-slate-200/80 px-2 py-1 rounded-lg shrink-0">
-                                DISC
-                              </span>
-                              <div className="flex items-center border-2 border-slate-300 focus-within:border-primary rounded-xl bg-white overflow-hidden shadow-xs h-11 sm:h-12 transition">
-                                <input
-                                  type="number"
-                                  min={0}
-                                  placeholder="0"
-                                  value={item.discountValue || ''}
-                                  onChange={(e) =>
-                                    handleUpdateItemDiscountValue(
-                                      idx,
-                                      parseFloat(e.target.value) || 0
-                                    )
-                                  }
-                                  style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
-                                  className="w-28 sm:w-36 h-11 sm:h-12 px-3 text-right font-black text-slate-900 text-lg sm:text-xl focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleItemDiscountType(idx)}
-                                  className="w-11 sm:w-12 h-11 sm:h-12 flex items-center justify-center text-base sm:text-lg font-black bg-slate-100 text-slate-800 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer border-l-2 border-slate-200 shrink-0"
-                                  title="Toggle discount type (BDT / %)"
-                                >
-                                  {itemDiscType === 'amount' ? '৳' : '%'}
-                                </button>
-                              </div>
-                            </div>
-
-                            {/* Line Total */}
-                            <div className="text-right shrink-0 min-w-[95px] sm:ml-auto">
-                              <span className="text-lg sm:text-xl font-black text-slate-900 block font-mono">
-                                ৳{finalAmount.toFixed(2)}
-                              </span>
-                              {(qty > 1 || itemDiscAmount > 0) && (
-                                <span className="text-xs text-slate-400 block -mt-0.5 font-medium">
-                                  {itemDiscAmount > 0 ? (
-                                    <span className="text-emerald-600 font-bold">
-                                      (-৳{itemDiscAmount.toFixed(0)})
-                                    </span>
-                                  ) : (
-                                    <span>৳{unitPrice}×{qty}</span>
-                                  )}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {/* Subtotal & Discount Row */}
-                <div className="space-y-3 pb-5 border-b border-slate-100 text-sm">
-                  <div className="flex justify-between text-slate-600 font-medium">
-                    <span>Gross Subtotal ({totalQuantity} unit{totalQuantity > 1 ? 's' : ''}):</span>
-                    <span className="font-bold text-slate-900 font-mono text-base">
-                      ৳{grossSubtotal.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {/* Individual Test Discounts Sum */}
-                  {totalItemDiscounts > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-medium">
-                      <span>Per-Item Discounts Total:</span>
-                      <span className="font-bold font-mono text-base">-৳{totalItemDiscounts.toFixed(2)}</span>
-                    </div>
-                  )}
-
-                  {/* Invoice Level / Special Extra Discount */}
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <span className="text-slate-600 font-medium">Special Invoice Disc:</span>
-                    <div className="flex items-center gap-2 w-56 sm:w-72">
-                      <input
-                        type="number"
-                        min={0}
-                        value={discountVal || ''}
-                        onChange={(e) => setDiscountVal(parseFloat(e.target.value) || 0)}
-                        placeholder="0"
-                        style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
-                        className="w-full h-12 px-4 rounded-xl border-2 border-slate-300 text-lg text-right font-black text-slate-900 focus:outline-hidden focus:border-primary shadow-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDiscountType(discountType === 'amount' ? 'percent' : 'amount')
-                        }
-                        className="px-5 h-12 rounded-xl bg-slate-100 text-base font-black text-slate-800 hover:bg-slate-200 transition cursor-pointer shrink-0 border-2 border-slate-200"
-                      >
-                        {discountType === 'amount' ? 'BDT' : '%'}
-                      </button>
-                    </div>
-                  </div>
-
-                  {calculatedInvoiceDiscount > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-semibold">
-                      <span>Invoice Disc Deducted:</span>
-                      <span className="font-mono text-base font-bold">-৳{calculatedInvoiceDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-
-                  {/* Total Combined Discount if both exist */}
-                  {totalItemDiscounts > 0 && calculatedInvoiceDiscount > 0 && (
-                    <div className="flex justify-between text-slate-700 font-bold text-xs sm:text-sm pt-2 border-t border-slate-100">
-                      <span>Total Combined Discount:</span>
-                      <span className="text-emerald-700 font-mono text-base font-black">-৳{totalDiscount.toFixed(2)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Grand Total Display */}
-                <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-2 border-emerald-500/30 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs uppercase font-black tracking-widest text-slate-500 block">
-                      Payable Grand Total
-                    </span>
-                    <span className="text-2xl sm:text-4xl font-black text-emerald-700 font-mono tracking-tight">
-                      ৳{grandTotal.toLocaleString()}
-                    </span>
-                  </div>
-                  <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-primary/10 text-primary font-mono tracking-wider">
-                    LAB POS
-                  </span>
-                </div>
-
-                {/* Paid Amount Received Input & Presets */}
-                <div className="space-y-2.5 pt-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs sm:text-sm font-bold text-slate-700">
-                      Amount Paid (BDT) *
-                    </label>
-                    <div className="flex gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleQuickPayment('full')}
-                        className="text-xs font-bold px-3 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
-                      >
-                        Full
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickPayment('half')}
-                        className="text-xs font-bold px-3 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                      >
-                        50%
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleQuickPayment('due')}
-                        className="text-xs font-bold px-3 py-1 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 transition cursor-pointer"
-                      >
-                        Due All
-                      </button>
-                    </div>
-                  </div>
-
+            ) : (
+              /* New Patient Mode: 2 Tight Rows */
+              <div className="space-y-1.5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5 items-center">
+                  <input
+                    type="text"
+                    required
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    placeholder="Patient Full Name *"
+                    className="sm:col-span-3 h-8.5 px-2.5 rounded-lg border border-slate-300 focus:border-primary focus:outline-hidden"
+                  />
+                  <input
+                    type="text"
+                    required
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    placeholder="Contact Phone *"
+                    className="sm:col-span-3 h-8.5 px-2.5 rounded-lg border border-slate-300 focus:border-primary focus:outline-hidden"
+                  />
                   <input
                     type="number"
                     min={0}
-                    value={paidAmount}
-                    onChange={(e) => setPaidAmount(e.target.value)}
-                    placeholder={grandTotal ? String(grandTotal) : 'Enter paid amount'}
-                    className="w-full h-12 px-4 rounded-xl border border-slate-200 text-base sm:text-lg font-black font-mono text-dark focus:outline-hidden focus:border-primary focus:ring-2 focus:ring-primary/15 transition"
+                    value={patientAge}
+                    onChange={(e) => setPatientAge(e.target.value)}
+                    placeholder="Age"
+                    className="sm:col-span-1 h-8.5 px-2 rounded-lg border border-slate-300 focus:border-primary focus:outline-hidden"
                   />
-                </div>
-
-                {/* Balance Due Card */}
-                <div
-                  className={`p-4 rounded-xl flex items-center justify-between ${
-                    dueAmount <= 0
-                      ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
-                      : 'bg-rose-50 text-rose-900 border border-rose-200'
-                  }`}
-                >
-                  <span className="font-bold text-sm sm:text-base">
-                    {dueAmount <= 0 ? 'Fully Paid' : 'Remaining Due Balance:'}
-                  </span>
-                  <span className="text-base sm:text-xl font-black font-mono">
-                    ৳{dueAmount.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Payment Method Selector */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs sm:text-sm font-bold text-slate-700">
-                    Payment Method
-                  </label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="w-full h-11 text-sm font-medium">
+                  <Select value={patientGender} onValueChange={setPatientGender}>
+                    <SelectTrigger className="sm:col-span-1 h-8.5 bg-white border-slate-300 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Cash">Cash at Counter</SelectItem>
-                      <SelectItem value="bKash / MFS">bKash / Mobile Money</SelectItem>
-                      <SelectItem value="Nagad">Nagad MFS</SelectItem>
-                      <SelectItem value="Card">Debit / Credit Card</SelectItem>
-                      <SelectItem value="Bank Wire">Bank Wire</SelectItem>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Select value={patientBloodGroup} onValueChange={setPatientBloodGroup}>
+                    <SelectTrigger className="sm:col-span-1 h-8.5 bg-white border-slate-300 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A+">A+</SelectItem>
+                      <SelectItem value="A-">A-</SelectItem>
+                      <SelectItem value="B+">B+</SelectItem>
+                      <SelectItem value="B-">B-</SelectItem>
+                      <SelectItem value="O+">O+</SelectItem>
+                      <SelectItem value="O-">O-</SelectItem>
+                      <SelectItem value="AB+">AB+</SelectItem>
+                      <SelectItem value="AB-">AB-</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <input
+                    type="text"
+                    value={patientAddress}
+                    onChange={(e) => setPatientAddress(e.target.value)}
+                    placeholder="Address / Location"
+                    className="sm:col-span-3 h-8.5 px-2.5 rounded-lg border border-slate-300 focus:border-primary focus:outline-hidden"
+                  />
                 </div>
-
-                {/* Action Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting || cartItems.length === 0}
-                  className="w-full py-4 rounded-2xl bg-primary text-white font-black text-base tracking-wide shadow-xl shadow-primary/25 hover:bg-primary/90 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <Receipt className="h-5 w-5" />
-                      <span>Complete Order & Print Slip</span>
-                    </>
-                  )}
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5 items-center">
+                  <div className="sm:col-span-5">
+                    <Select
+                      value={selectedDoctorId}
+                      onValueChange={(val) => {
+                        setSelectedDoctorId(val);
+                        const d = doctorsData?.data?.find((item) => item.id === val);
+                        if (d) setCustomDoctorName(d.name);
+                      }}
+                    >
+                      <SelectTrigger className="w-full h-8.5 bg-white border-slate-300 text-xs">
+                        <SelectValue placeholder="-- Ref Doctor --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {doctorsData?.data?.map((doc) => (
+                          <SelectItem key={doc.id} value={doc.id} className="text-xs">
+                            {doc.name} ({doc.department})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-7 flex items-center gap-1.5 bg-emerald-50/90 p-1 rounded-lg border border-emerald-300 shadow-2xs">
+                    <span className="text-[11px] font-bold text-emerald-950 shrink-0 flex items-center gap-1 pl-1">
+                      <Clock className="h-3.5 w-3.5 text-emerald-700" />
+                      <span>Delivery:</span>
+                    </span>
+                    <input
+                      type="text"
+                      value={deliveryDate}
+                      onChange={(e) => handleUpdateDeliveryDate(e.target.value)}
+                      placeholder="e.g. Tomorrow 4:00 PM, Today 8:00 PM"
+                      className="w-full h-7 px-2 rounded-md border border-emerald-300 bg-white text-xs font-bold text-emerald-950 focus:outline-hidden focus:border-emerald-600"
+                    />
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDeliveryDate('Today 8:00 PM')}
+                        className={`px-2 h-7 rounded text-[10px] font-medium transition cursor-pointer ${
+                          deliveryDate === 'Today 8:00 PM'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        }`}
+                      >
+                        Today (8 PM)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDeliveryDate('Tomorrow 12:00 PM')}
+                        className={`px-2 h-7 rounded text-[10px] font-medium transition cursor-pointer ${
+                          deliveryDate === 'Tomorrow 12:00 PM'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        }`}
+                      >
+                        Tmrw (12 PM)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDeliveryDate('Tomorrow 4:00 PM')}
+                        className={`px-2 h-7 rounded text-[10px] font-medium transition cursor-pointer ${
+                          deliveryDate === 'Tomorrow 4:00 PM'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        }`}
+                      >
+                        Tmrw (4 PM)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateDeliveryDate('2 Days (48 Hours)')}
+                        className={`px-2 h-7 rounded text-[10px] font-medium transition cursor-pointer ${
+                          deliveryDate === '2 Days (48 Hours)'
+                            ? 'bg-emerald-700 text-white font-bold shadow-2xs'
+                            : 'bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        }`}
+                      >
+                        2 Days
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= 2. MIDDLE SCROLLABLE DIAGNOSTIC TESTS TABLE (flex-1 min-h-0 overflow-hidden) ================= */}
+        <div className="flex-1 min-h-0 flex flex-col bg-white rounded-xl p-2.5 sm:p-3 border border-slate-200/90 shadow-2xs space-y-2 overflow-hidden">
+          {/* Top Search & Filter Bar (shrink-0) */}
+          <div className="shrink-0 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <div ref={testSearchContainerRef} className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={testSearch}
+                  onChange={(e) => {
+                    setTestSearch(e.target.value);
+                    setIsTestDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsTestDropdownOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (filteredTests.length > 0) {
+                        handleAddTestToCart(filteredTests[0]);
+                        setTestSearch('');
+                        setIsTestDropdownOpen(false);
+                      }
+                    }
+                  }}
+                  placeholder="Search test by code or name (e.g. CBC, USG, Lipid, ECG, Glucose, Creatinine)... [Type to search, press Enter to add]"
+                  className="w-full h-9 pl-9 pr-8 rounded-lg border border-slate-300 focus:border-primary text-xs font-normal text-slate-900 placeholder:text-slate-400 focus:outline-hidden transition shadow-2xs"
+                />
+                {testSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTestSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
+                {/* Instant Suggestions Dropdown */}
+                {isTestDropdownOpen && testSearch.trim().length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl max-h-60 overflow-y-auto z-40 p-1.5 space-y-1">
+                    {filteredTests.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-slate-500">
+                        No tests match "{testSearch}".
+                      </div>
+                    ) : (
+                      filteredTests.slice(0, 10).map((t) => {
+                        const inCart = cartItems.find((ci) => ci.testId === t.id);
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => {
+                              handleAddTestToCart(t);
+                              setTestSearch('');
+                              setIsTestDropdownOpen(false);
+                            }}
+                            className="p-2 rounded-lg hover:bg-slate-50 transition cursor-pointer flex items-center justify-between gap-2 text-xs"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-semibold text-slate-900 block truncate">{t.name}</span>
+                              <span className="text-[11px] text-slate-500">{t.category} {t.roomNumber && `• Room ${t.roomNumber}`}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="font-bold font-mono text-primary">৳{parseFloat(String(t.price)).toLocaleString()}</span>
+                              <span className="px-2 py-0.5 rounded bg-primary text-white text-[11px] font-medium">
+                                {inCart ? `+ More (${inCart.quantity})` : '+ Add'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Table Status Pill */}
+              <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono shrink-0">
+                {cartItems.length} Test(s) ({totalQuantity} Unit{totalQuantity > 1 ? 's' : ''})
+              </span>
+
+              {/* Clear Table Button */}
+              {cartItems.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearCart}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-200 text-xs font-medium transition cursor-pointer shrink-0"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>Clear</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* DEDICATED SCROLLABLE TABLE CONTAINER */}
+          <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-200 relative">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="sticky top-0 bg-slate-100 text-slate-700 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px] z-10 shadow-2xs">
+                <tr>
+                  <th className="py-2.5 px-3 text-center w-10">#</th>
+                  <th className="py-2.5 px-3">Diagnostic Test & Lab Department</th>
+                  <th className="py-2.5 px-3 text-right w-24">Rate (৳)</th>
+                  <th className="py-2.5 px-3 text-center w-36">Quantity</th>
+                  <th className="py-2.5 px-3 text-center w-44">Line Discount</th>
+                  <th className="py-2.5 px-3 text-right w-28">Net Total</th>
+                  <th className="py-2.5 px-2 text-center w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {cartItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-12 text-center text-slate-400">
+                      <FlaskConical className="h-8 w-8 mx-auto text-slate-300 mb-1.5" />
+                      <p className="font-semibold text-slate-800 text-xs">No diagnostic tests in table</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Use the search bar above to add diagnostic tests.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  cartItems.map((item, idx) => {
+                    const unitPrice = parseFloat(String(item.price)) || 0;
+                    const qty = item.quantity || 1;
+                    const lineGross = unitPrice * qty;
+                    const itemDiscAmount = parseFloat(String(item.discountAmount || 0));
+                    const finalAmount = parseFloat(String(item.finalAmount || (lineGross - itemDiscAmount)));
+                    const itemDiscType = item.discountType || 'amount';
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                        {/* Sl Number */}
+                        <td className="py-2 px-3 text-center">
+                          <span className="h-5 w-5 rounded bg-slate-100 text-slate-700 text-[11px] font-semibold inline-flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                        </td>
+
+                        {/* Test Details */}
+                        <td className="py-2 px-3 min-w-[180px]">
+                          <span className="font-semibold text-slate-900 block">
+                            {item.testName}
+                          </span>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                            <span>{item.category || 'Pathology'}</span>
+                            {item.roomNumber && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono">Room {item.roomNumber}</span>
+                              </>
+                            )}
+                            <span className="text-emerald-700 font-semibold font-mono">
+                              • Due: {item.deliveryDate || deliveryDate}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Standard Rate */}
+                        <td className="py-2 px-3 text-right font-mono font-medium text-slate-800">
+                          ৳{unitPrice.toLocaleString()}
+                        </td>
+
+                        {/* Quantity Counter */}
+                        <td className="py-2 px-3 text-center">
+                          <div className="inline-flex items-center border border-slate-300 focus-within:border-primary rounded-lg bg-white overflow-hidden h-8">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemQuantity(idx, qty - 1)}
+                              disabled={qty <= 1}
+                              className="w-7 h-8 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-25 transition cursor-pointer select-none active:scale-95"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min={1}
+                              value={qty}
+                              onChange={(e) =>
+                                handleUpdateItemQuantity(idx, parseInt(e.target.value) || 1)
+                              }
+                              style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                              className="w-10 h-8 text-center font-semibold text-slate-900 text-xs focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItemQuantity(idx, qty + 1)}
+                              className="w-7 h-8 flex items-center justify-center text-sm font-semibold text-slate-700 hover:bg-slate-100 transition cursor-pointer select-none active:scale-95"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Line Discount */}
+                        <td className="py-2 px-3 text-center">
+                          <div className="inline-flex items-center border border-slate-300 focus-within:border-primary rounded-lg bg-white overflow-hidden h-8">
+                            <input
+                              type="number"
+                              min={0}
+                              placeholder="0"
+                              value={item.discountValue || ''}
+                              onChange={(e) =>
+                                handleUpdateItemDiscountValue(
+                                  idx,
+                                  parseFloat(e.target.value) || 0
+                                )
+                              }
+                              style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                              className="w-16 h-8 px-2 text-right font-semibold text-slate-900 text-xs focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleToggleItemDiscountType(idx)}
+                              className="w-8 h-8 flex items-center justify-center text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer border-l border-slate-200 shrink-0"
+                              title="Toggle discount type (BDT / %)"
+                            >
+                              {itemDiscType === 'amount' ? '৳' : '%'}
+                            </button>
+                          </div>
+                        </td>
+
+                        {/* Net Total */}
+                        <td className="py-2 px-3 text-right">
+                          <span className="font-bold font-mono text-slate-900 block">
+                            ৳{finalAmount.toFixed(2)}
+                          </span>
+                          {(qty > 1 || itemDiscAmount > 0) && (
+                            <span className="text-[10px] text-slate-500 block font-normal">
+                              {itemDiscAmount > 0 ? (
+                                <span className="text-emerald-600 font-medium">
+                                  (-৳{itemDiscAmount.toFixed(0)})
+                                </span>
+                              ) : (
+                                <span>৳{unitPrice}×{qty}</span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Action */}
+                        <td className="py-2 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFromCart(idx)}
+                            title="Remove test"
+                            className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ================= 3. FIXED BOTTOM COMPACT FINANCIAL SETTLEMENT DOCK (shrink-0) ================= */}
+        <div className="shrink-0 bg-white rounded-xl p-2 sm:p-2.5 border border-slate-200/90 shadow-2xs">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
+            {/* Left Col (4 Cols): Special Invoice Discount & Payment Method */}
+            <div className="lg:col-span-4 space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-slate-600 shrink-0">Inv Disc:</span>
+                <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden flex-1 h-8">
+                  <input
+                    type="number"
+                    min={0}
+                    value={discountVal || ''}
+                    onChange={(e) => setDiscountVal(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    style={{ MozAppearance: 'textfield', WebkitAppearance: 'none' }}
+                    className="w-full h-8 px-2 text-right font-semibold text-slate-900 text-xs focus:outline-hidden [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDiscountType(discountType === 'amount' ? 'percent' : 'amount')
+                    }
+                    className="px-2 h-8 bg-slate-100 text-[11px] font-semibold text-slate-700 hover:bg-slate-200 border-l border-slate-200 shrink-0"
+                  >
+                    {discountType === 'amount' ? 'BDT' : '%'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-slate-600 shrink-0">Pay Via:</span>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger className="w-full h-8 bg-white border-slate-300 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Cash">Cash at Counter</SelectItem>
+                    <SelectItem value="bKash / MFS">bKash / MFS</SelectItem>
+                    <SelectItem value="Nagad">Nagad MFS</SelectItem>
+                    <SelectItem value="Card">Card POS</SelectItem>
+                    <SelectItem value="Bank Wire">Bank Wire</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Middle Col (4 Cols): Subtotals & Compact Grand Total Hero */}
+            <div className="lg:col-span-4 space-y-1">
+              <div className="flex justify-between text-[11px] text-slate-500 font-medium px-1">
+                <span>Gross: ৳{grossSubtotal.toFixed(0)}</span>
+                {totalDiscount > 0 && <span className="text-emerald-700 font-medium">Disc: -৳{totalDiscount.toFixed(0)}</span>}
+              </div>
+
+              {/* Compact Net Payable Hero Card */}
+              <div className="h-10 px-3.5 rounded-xl bg-slate-950 text-white flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] tracking-wider uppercase font-semibold text-emerald-400">Net Payable</span>
+                </div>
+                <div className="text-xl font-bold font-mono text-emerald-300">
+                  ৳{grandTotal.toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Col (4 Cols): Cash Received, Due Status & Complete Button */}
+            <div className="lg:col-span-4 space-y-1">
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickPayment('full')}
+                    className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 hover:bg-emerald-200 font-medium cursor-pointer"
+                  >
+                    Paid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickPayment('half')}
+                    className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium cursor-pointer"
+                  >
+                    50%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickPayment('due')}
+                    className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-800 hover:bg-rose-200 font-medium cursor-pointer"
+                  >
+                    Due
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  value={paidAmount}
+                  onChange={(e) => setPaidAmount(e.target.value)}
+                  placeholder={grandTotal ? `৳${grandTotal}` : 'Paid (৳)'}
+                  className="w-full h-8 px-2 rounded-lg border border-slate-300 text-xs font-bold font-mono text-slate-900 focus:outline-hidden focus:border-primary text-right"
+                />
+                <span className={`px-2 py-1 rounded-lg text-[11px] font-mono font-semibold shrink-0 ${
+                  dueAmount <= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}>
+                  {dueAmount <= 0 ? 'Zero Due' : `Due: ৳${dueAmount.toFixed(0)}`}
+                </span>
+              </div>
+
+              {/* Complete Order Button */}
+              <button
+                type="submit"
+                disabled={isSubmitting || cartItems.length === 0}
+                className="w-full h-8.5 rounded-xl bg-primary text-white font-bold text-xs tracking-wide shadow-xs hover:bg-primary-hover active:scale-[0.99] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? (
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Receipt className="h-3.5 w-3.5" />
+                    <span>Complete & Print Slip</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
@@ -1260,3 +1331,4 @@ export const TestPOSPage: React.FC = () => {
 };
 
 export default TestPOSPage;
+

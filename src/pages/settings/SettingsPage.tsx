@@ -7,6 +7,8 @@ import {
   CreditCard,
   Shield,
   Settings as SettingsIcon,
+  ShieldCheck,
+  MessageSquare,
 } from 'lucide-react';
 import { RoomsBedsTab } from './tabs/RoomsBedsTab';
 import { OperationsTab } from './tabs/OperationsTab';
@@ -14,8 +16,18 @@ import { TestsTab } from './tabs/TestsTab';
 import { GeneralTab } from './tabs/GeneralTab';
 import { BillingTab } from './tabs/BillingTab';
 import { SecurityTab } from './tabs/SecurityTab';
+import { UsersRBACTab } from './tabs/UsersRBACTab';
+import { SMSGatewayTab } from './tabs/SMSGatewayTab';
 
-type SettingsTab = 'rooms' | 'operations' | 'tests' | 'general' | 'billing' | 'security';
+type SettingsTab =
+  | 'rooms'
+  | 'operations'
+  | 'tests'
+  | 'general'
+  | 'billing'
+  | 'security'
+  | 'users'
+  | 'sms';
 
 export const SettingsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('rooms');
@@ -106,6 +118,32 @@ export const SettingsPage: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => setActiveTab('users')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeTab === 'users'
+                ? 'bg-white text-primary shadow-xs'
+                : 'text-slate-600 hover:text-dark hover:bg-white/60'
+            }`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span>Users & RBAC</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('sms')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeTab === 'sms'
+                ? 'bg-white text-primary shadow-xs'
+                : 'text-slate-600 hover:text-dark hover:bg-white/60'
+            }`}
+          >
+            <MessageSquare className="h-4 w-4" />
+            <span>SMS Gateway</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('security')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
               activeTab === 'security'
@@ -126,6 +164,8 @@ export const SettingsPage: React.FC = () => {
         {activeTab === 'tests' && <TestsTab />}
         {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'billing' && <BillingTab />}
+        {activeTab === 'users' && <UsersRBACTab />}
+        {activeTab === 'sms' && <SMSGatewayTab />}
         {activeTab === 'security' && <SecurityTab />}
       </div>
     </div>

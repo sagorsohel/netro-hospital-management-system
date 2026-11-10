@@ -2,28 +2,53 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
-import { LayoutGrid, Building2, Stethoscope, Receipt, Users, Cpu, Settings, LogOut, UserCheck, BedDouble, FlaskConical, ClipboardList, CalendarClock } from 'lucide-react';
+import {
+  LayoutGrid,
+  Building2,
+  Stethoscope,
+  Receipt,
+  Users,
+  Cpu,
+  Settings,
+  LogOut,
+  UserCheck,
+  BedDouble,
+  FlaskConical,
+  ClipboardList,
+  CalendarClock,
+  PieChart,
+  Barcode,
+} from 'lucide-react';
 
 export const HospitalSidebar: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
+  const currentRole = (user?.role || 'admin').toLowerCase();
 
-  const navItems = [
-    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'patients', path: '/patients', label: 'Patient Profiles', icon: UserCheck },
-    { id: 'serials', path: '/serials', label: 'Doctor Serials', icon: CalendarClock },
-    { id: 'admissions', path: '/admissions', label: 'Inpatient & POS', icon: BedDouble },
-    { id: 'test-pos', path: '/tests/pos', label: 'Lab & Test POS', icon: FlaskConical },
-    { id: 'test-invoices', path: '/tests/invoices', label: 'Diagnostic Invoices', icon: ClipboardList },
-    { id: 'departments', path: '/departments', label: 'Departments', icon: Building2 },
-    { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope },
-    { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt },
-    { id: 'staff', path: '/staff', label: 'Staff & HR', icon: Users },
-    { id: 'equipment', path: '/equipment', label: 'Equipment', icon: Cpu },
-    { id: 'settings', path: '/settings', label: 'Settings & Rooms', icon: Settings },
+  const allNavItems = [
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid, roles: ['admin', 'receptionist', 'lab_technician', 'accountant', 'doctor', 'hr_manager', 'shareholder'] },
+    { id: 'patients', path: '/patients', label: 'Patient Profiles', icon: UserCheck, roles: ['admin', 'receptionist', 'doctor'] },
+    { id: 'serials', path: '/serials', label: 'Doctor Serials', icon: CalendarClock, roles: ['admin', 'receptionist', 'doctor'] },
+    { id: 'admissions', path: '/admissions', label: 'Inpatient & POS', icon: BedDouble, roles: ['admin', 'receptionist', 'accountant'] },
+    { id: 'test-pos', path: '/tests/pos', label: 'Lab & Test POS', icon: FlaskConical, roles: ['admin', 'receptionist', 'lab_technician'] },
+    { id: 'lab-workstation', path: '/tests/lab-workstation', label: 'Lab Workstation', icon: Barcode, roles: ['admin', 'lab_technician'] },
+    { id: 'test-invoices', path: '/tests/invoices', label: 'Diagnostic Invoices', icon: ClipboardList, roles: ['admin', 'receptionist', 'lab_technician', 'accountant'] },
+    { id: 'shareholders', path: '/shareholders', label: 'Shareholder Panel', icon: PieChart, roles: ['admin', 'accountant', 'shareholder'] },
+    { id: 'departments', path: '/departments', label: 'Departments', icon: Building2, roles: ['admin', 'hr_manager'] },
+    { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'receptionist', 'doctor'] },
+    { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'accountant'] },
+    { id: 'staff', path: '/staff', label: 'Staff & HR', icon: Users, roles: ['admin', 'hr_manager'] },
+    { id: 'equipment', path: '/equipment', label: 'Equipment', icon: Cpu, roles: ['admin', 'hr_manager'] },
+    { id: 'settings', path: '/settings', label: 'Settings & Rooms', icon: Settings, roles: ['admin'] },
   ];
+
+  // Role-based Access Control filtering (Section 4.11)
+  const navItems = allNavItems.filter((item) => {
+    if (currentRole === 'admin' || currentRole === 'super_admin') return true;
+    return item.roles.includes(currentRole);
+  });
 
   const handleSignOut = () => {
     dispatch(logout());

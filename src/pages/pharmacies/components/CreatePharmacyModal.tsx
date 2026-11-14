@@ -363,3 +363,4 @@ export const CreatePharmacyModal: React.FC<CreatePharmacyModalProps> = ({
     </div>
   );
 };
+

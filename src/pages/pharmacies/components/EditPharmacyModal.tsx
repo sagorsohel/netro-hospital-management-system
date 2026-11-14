@@ -225,3 +225,4 @@ export const EditPharmacyModal: React.FC<EditPharmacyModalProps> = ({
     </div>
   );
 };
+

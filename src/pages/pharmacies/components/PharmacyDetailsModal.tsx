@@ -295,3 +295,4 @@ export const PharmacyDetailsModal: React.FC<PharmacyDetailsModalProps> = ({
     </div>
   );
 };
+

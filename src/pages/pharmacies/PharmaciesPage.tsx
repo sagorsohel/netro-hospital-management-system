@@ -461,3 +461,4 @@ export const PharmaciesPage: React.FC = () => {
 };
 
 export default PharmaciesPage;
+

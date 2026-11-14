@@ -30,6 +30,7 @@ import { CreatePharmacyModal } from './components/CreatePharmacyModal';
 import { EditPharmacyModal } from './components/EditPharmacyModal';
 import { PharmacyDetailsModal } from './components/PharmacyDetailsModal';
 import { ResetOwnerPasswordModal } from './components/ResetOwnerPasswordModal';
+import { PharmacyStaffModal } from './components/PharmacyStaffModal';
 import { Pagination } from '../../components/common/Pagination';
 
 export const PharmaciesPage: React.FC = () => {
@@ -47,6 +48,7 @@ export const PharmaciesPage: React.FC = () => {
   const [editPharmacy, setEditPharmacy] = useState<Pharmacy | null>(null);
   const [detailsPharmacyId, setDetailsPharmacyId] = useState<number | null>(null);
   const [resetPasswordPharmacy, setResetPasswordPharmacy] = useState<{ id: number; name: string } | null>(null);
+  const [staffModalPharmacy, setStaffModalPharmacy] = useState<Pharmacy | null>(null);
 
   // Status mutation
   const [updatePharmacyStatus, { isLoading: isUpdatingStatus }] = useUpdatePharmacyStatusMutation();
@@ -320,10 +322,15 @@ export const PharmaciesPage: React.FC = () => {
 
                     {/* Staff Count */}
                     <td className="py-3.5 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-bold">
-                        <Users className="h-3 w-3 text-slate-500" />
-                        <span>{pharmacy.userCount ?? 0}</span>
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setStaffModalPharmacy(pharmacy)}
+                        title="View & Add Branch Staff"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition-all cursor-pointer shadow-2xs group-hover:scale-105"
+                      >
+                        <Users className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>{pharmacy.userCount ?? 0} Staff</span>
+                      </button>
                     </td>
 
                     {/* Status Toggle Badge */}
@@ -351,6 +358,16 @@ export const PharmaciesPage: React.FC = () => {
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
+                        {/* Manage Staff */}
+                        <button
+                          type="button"
+                          onClick={() => setStaffModalPharmacy(pharmacy)}
+                          title="Manage & Add Staff"
+                          className="h-8 w-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-slate-200/70 transition-colors cursor-pointer"
+                        >
+                          <Users className="h-3.5 w-3.5 text-emerald-600" />
+                        </button>
+
                         {/* View Details */}
                         <button
                           type="button"
@@ -445,6 +462,14 @@ export const PharmaciesPage: React.FC = () => {
         pharmacyId={detailsPharmacyId}
         onEdit={(pharm) => setEditPharmacy(pharm)}
         onResetPassword={(pharm) => setResetPasswordPharmacy({ id: pharm.id, name: pharm.name })}
+        onOpenStaff={(pharm) => setStaffModalPharmacy(pharm)}
+      />
+
+      <PharmacyStaffModal
+        isOpen={!!staffModalPharmacy}
+        onClose={() => setStaffModalPharmacy(null)}
+        pharmacyId={staffModalPharmacy?.id || null}
+        pharmacyName={staffModalPharmacy?.name}
       />
 
       <ResetOwnerPasswordModal

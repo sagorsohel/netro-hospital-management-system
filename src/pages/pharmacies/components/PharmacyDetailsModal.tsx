@@ -25,6 +25,7 @@ interface PharmacyDetailsModalProps {
   pharmacyId: number | null;
   onEdit?: (pharmacy: any) => void;
   onResetPassword?: (pharmacy: any) => void;
+  onOpenStaff?: (pharmacy: any) => void;
 }
 
 export const PharmacyDetailsModal: React.FC<PharmacyDetailsModalProps> = ({
@@ -33,6 +34,7 @@ export const PharmacyDetailsModal: React.FC<PharmacyDetailsModalProps> = ({
   pharmacyId,
   onEdit,
   onResetPassword,
+  onOpenStaff,
 }) => {
   const { data: response, isLoading } = useGetPharmacyByIdQuery(pharmacyId!, {
     skip: !isOpen || !pharmacyId,
@@ -160,9 +162,24 @@ export const PharmacyDetailsModal: React.FC<PharmacyDetailsModalProps> = ({
                     <Briefcase className="h-3.5 w-3.5 text-emerald-600" />
                     Staff Distribution By Role
                   </h3>
-                  <span className="text-[11px] font-bold text-slate-500">
-                    Total: {Object.values(staffByRole).reduce((a, b) => a + b, 0)} Members
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-slate-500">
+                      Total: {Object.values(staffByRole).reduce((a, b) => a + b, 0)} Members
+                    </span>
+                    {onOpenStaff && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onOpenStaff(pharmacy);
+                          onClose();
+                        }}
+                        className="h-7 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                      >
+                        <Users className="h-3 w-3" />
+                        <span>Manage & Add Staff</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
@@ -269,6 +286,19 @@ export const PharmacyDetailsModal: React.FC<PharmacyDetailsModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {pharmacy && onOpenStaff && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenStaff(pharmacy);
+                  onClose();
+                }}
+                className="h-9 px-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Users className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Manage Staff</span>
+              </button>
+            )}
             {pharmacy && (
               <button
                 type="button"

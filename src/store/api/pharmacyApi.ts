@@ -1,12 +1,27 @@
 import { baseApi } from './baseApi';
 
+export type PharmacyRole = 'owner' | 'manager' | 'pharmacist' | 'cashier' | 'staff';
+
 export interface PharmacyOwner {
   id: string;
   pharmacyId: number;
   name: string;
   phone: string;
   email?: string | null;
-  role: 'owner' | 'manager' | 'pharmacist' | 'cashier' | 'staff';
+  role: PharmacyRole;
+  isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PharmacyUser {
+  id: string;
+  pharmacyId: number;
+  name: string;
+  phone: string;
+  email?: string | null;
+  role: PharmacyRole;
   isActive: boolean;
   lastLoginAt?: string | null;
   createdAt?: string;
@@ -55,6 +70,22 @@ export interface ResetOwnerPasswordPayload {
   newPassword: string;
 }
 
+export interface CreatePharmacyUserPayload {
+  name: string;
+  phone: string;
+  email?: string | null;
+  password: string;
+  role: PharmacyRole;
+}
+
+export interface UpdatePharmacyUserPayload {
+  name?: string;
+  phone?: string;
+  email?: string | null;
+  role?: PharmacyRole;
+  isActive?: boolean;
+}
+
 export interface PharmacyListResponse {
   success: boolean;
   data: Pharmacy[];
@@ -70,6 +101,23 @@ export interface PharmacySingleResponse {
   success: boolean;
   message?: string;
   data: Pharmacy;
+}
+
+export interface PharmacyUserListResponse {
+  success: boolean;
+  data: PharmacyUser[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface PharmacyUserSingleResponse {
+  success: boolean;
+  message?: string;
+  data: PharmacyUser;
 }
 
 export const pharmacyApi = baseApi.injectEndpoints({
@@ -146,6 +194,82 @@ export const pharmacyApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Pharmacies', id }],
     }),
+
+    // ========== Pharmacy Staff & User Management (Hospital Admin has full access) ==========
+    getPharmacyUsers: builder.query<
+      PharmacyUserListResponse,
+      { pharmacyId: number | string; page?: number; limit?: number; search?: string; role?: string; isActive?: boolean }
+    >({
+      query: ({ pharmacyId, ...params }) => ({
+        url: `/pharmacies/${pharmacyId}/users`,
+        params: params || undefined,
+      }),
+      providesTags: (_res, _err, { pharmacyId }) => [
+        { type: 'Pharmacies', id: `USERS_${pharmacyId}` },
+        { type: 'Pharmacies', id: pharmacyId },
+      ],
+    }),
+
+    createPharmacyUser: builder.mutation<
+      PharmacyUserSingleResponse,
+      { pharmacyId: number | string; data: CreatePharmacyUserPayload }
+    >({
+      query: ({ pharmacyId, data }) => ({
+        url: `/pharmacies/${pharmacyId}/users`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: (_res, _err, { pharmacyId }) => [
+        { type: 'Pharmacies', id: `USERS_${pharmacyId}` },
+        { type: 'Pharmacies', id: pharmacyId },
+        { type: 'Pharmacies', id: 'LIST' },
+      ],
+    }),
+
+    updatePharmacyUser: builder.mutation<
+      PharmacyUserSingleResponse,
+      { pharmacyId: number | string; userId: string; data: UpdatePharmacyUserPayload }
+    >({
+      query: ({ pharmacyId, userId, data }) => ({
+        url: `/pharmacies/${pharmacyId}/users/${userId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      invalidatesTags: (_res, _err, { pharmacyId }) => [
+        { type: 'Pharmacies', id: `USERS_${pharmacyId}` },
+        { type: 'Pharmacies', id: pharmacyId },
+        { type: 'Pharmacies', id: 'LIST' },
+      ],
+    }),
+
+    resetPharmacyUserPassword: builder.mutation<
+      { success: boolean; message: string },
+      { pharmacyId: number | string; userId: string; newPassword: string }
+    >({
+      query: ({ pharmacyId, userId, newPassword }) => ({
+        url: `/pharmacies/${pharmacyId}/users/${userId}/reset-password`,
+        method: 'POST',
+        body: { newPassword },
+      }),
+      invalidatesTags: (_res, _err, { pharmacyId }) => [
+        { type: 'Pharmacies', id: `USERS_${pharmacyId}` },
+      ],
+    }),
+
+    deletePharmacyUser: builder.mutation<
+      { success: boolean; message: string },
+      { pharmacyId: number | string; userId: string }
+    >({
+      query: ({ pharmacyId, userId }) => ({
+        url: `/pharmacies/${pharmacyId}/users/${userId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, { pharmacyId }) => [
+        { type: 'Pharmacies', id: `USERS_${pharmacyId}` },
+        { type: 'Pharmacies', id: pharmacyId },
+        { type: 'Pharmacies', id: 'LIST' },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -157,5 +281,9 @@ export const {
   useUpdatePharmacyMutation,
   useUpdatePharmacyStatusMutation,
   useResetOwnerPasswordMutation,
+  useGetPharmacyUsersQuery,
+  useCreatePharmacyUserMutation,
+  useUpdatePharmacyUserMutation,
+  useResetPharmacyUserPasswordMutation,
+  useDeletePharmacyUserMutation,
 } = pharmacyApi;
-

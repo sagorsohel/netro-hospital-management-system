@@ -21,6 +21,7 @@ import { DiagnosticInvoicesPage } from './pages/tests/DiagnosticInvoicesPage';
 import { LabWorkstationPage } from './pages/tests/LabWorkstationPage';
 import { DoctorSerialsPage } from './pages/serials/DoctorSerialsPage';
 import { ShareholdersPage } from './pages/shareholders/ShareholdersPage';
+import { PharmaciesPage } from './pages/pharmacies/PharmaciesPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -55,6 +56,7 @@ export const App: React.FC = () => {
           <Route path="/tests/lab-workstation" element={<LabWorkstationPage />} />
           <Route path="/tests/invoices" element={<DiagnosticInvoicesPage />} />
           <Route path="/shareholders" element={<ShareholdersPage />} />
+          <Route path="/pharmacies" element={<PharmaciesPage />} />
           <Route path="/departments" element={<DepartmentPage />} />
           <Route path="/doctors" element={<DoctorsPage />} />
           <Route path="/doctors/new" element={<DoctorFormPage />} />

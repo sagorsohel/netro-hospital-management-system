@@ -18,6 +18,7 @@ import {
   CalendarClock,
   PieChart,
   Barcode,
+  Store,
 } from 'lucide-react';
 
 export const HospitalSidebar: React.FC = () => {
@@ -35,6 +36,7 @@ export const HospitalSidebar: React.FC = () => {
     { id: 'test-pos', path: '/tests/pos', label: 'Lab & Test POS', icon: FlaskConical, roles: ['admin', 'receptionist', 'lab_technician'] },
     { id: 'lab-workstation', path: '/tests/lab-workstation', label: 'Lab Workstation', icon: Barcode, roles: ['admin', 'lab_technician'] },
     { id: 'test-invoices', path: '/tests/invoices', label: 'Diagnostic Invoices', icon: ClipboardList, roles: ['admin', 'receptionist', 'lab_technician', 'accountant'] },
+    { id: 'pharmacies', path: '/pharmacies', label: 'Pharmacies', icon: Store, roles: ['admin'] },
     { id: 'shareholders', path: '/shareholders', label: 'Shareholder Panel', icon: PieChart, roles: ['admin', 'accountant', 'shareholder'] },
     { id: 'departments', path: '/departments', label: 'Departments', icon: Building2, roles: ['admin', 'hr_manager'] },
     { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'receptionist', 'doctor'] },

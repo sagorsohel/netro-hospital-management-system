@@ -10,6 +10,8 @@ export interface DiagnosticInvoiceItem {
   discountType?: 'amount' | 'percent';
   discountValue?: number;
   discountAmount?: number | string;
+  /** Max discount % allowed for this test (from test setup). 0 = no discount allowed. */
+  maxDiscountPercent?: number;
   finalAmount: number | string;
   deliveryDate?: string;
   roomNumber?: string | null;

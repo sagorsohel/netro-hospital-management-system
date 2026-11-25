@@ -275,6 +275,7 @@ export const TestPOSPage: React.FC = () => {
         category: t.category,
         price: priceNum,
         quantity: 1,
+        maxDiscountPercent: t.isDiscountable ? Number(t.discountPercent) || 0 : 0,
         discountType: 'amount',
         discountValue: 0,
         discountAmount: 0,
@@ -286,58 +287,56 @@ export const TestPOSPage: React.FC = () => {
     ]);
   };
 
+  // Max discount % allowed for a line (set per test in Settings → Tests)
+  const getMaxDiscountPercent = (item: DiagnosticInvoiceItem) =>
+    Math.min(100, Math.max(0, Number(item.maxDiscountPercent ?? 100)));
+
+  // Recalculate a line, clamping the discount to the test's allowed maximum
+  const recalcLine = (
+    item: DiagnosticInvoiceItem,
+    qty: number,
+    type: 'amount' | 'percent',
+    rawValue: number
+  ): DiagnosticInvoiceItem => {
+    const unitPrice = parseFloat(String(item.price || 0));
+    const lineGross = unitPrice * qty;
+    const maxPct = getMaxDiscountPercent(item);
+    const maxAmt = (lineGross * maxPct) / 100;
+    let discVal = Math.max(0, rawValue || 0);
+    let discAmt = 0;
+    if (type === 'percent') {
+      discVal = Math.min(maxPct, discVal);
+      discAmt = (lineGross * discVal) / 100;
+    } else {
+      discVal = Math.min(maxAmt, discVal);
+      discAmt = discVal;
+    }
+    return {
+      ...item,
+      quantity: qty,
+      discountType: type,
+      discountValue: discVal,
+      discountAmount: discAmt,
+      finalAmount: Math.max(0, lineGross - discAmt),
+    };
+  };
+
   // Update Item Quantity
   const handleUpdateItemQuantity = (idx: number, newQty: number) => {
     const validQty = Math.max(1, newQty);
     setCartItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== idx) return item;
-        const unitPrice = parseFloat(String(item.price || 0));
-        const lineGross = unitPrice * validQty;
-        const discVal = item.discountValue || 0;
-        let discAmt = 0;
-        if (item.discountType === 'percent') {
-          discAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
-        } else {
-          discAmt = Math.min(lineGross, Math.max(0, discVal));
-        }
-        const finalAmt = Math.max(0, lineGross - discAmt);
-        return {
-          ...item,
-          quantity: validQty,
-          discountAmount: discAmt,
-          finalAmount: finalAmt,
-        };
-      })
+      prev.map((item, i) =>
+        i !== idx ? item : recalcLine(item, validQty, item.discountType || 'amount', item.discountValue || 0)
+      )
     );
   };
 
-  // Update Item Individual Discount Value
+  // Update Item Individual Discount Value (cannot exceed the test's max %)
   const handleUpdateItemDiscountValue = (idx: number, value: number) => {
-    const rawVal = Math.max(0, value);
     setCartItems((prev) =>
-      prev.map((item, i) => {
-        if (i !== idx) return item;
-        const qty = item.quantity || 1;
-        const unitPrice = parseFloat(String(item.price || 0));
-        const lineGross = unitPrice * qty;
-        let discVal = rawVal;
-        let discAmt = 0;
-        if (item.discountType === 'percent') {
-          discVal = Math.min(100, rawVal);
-          discAmt = (lineGross * discVal) / 100;
-        } else {
-          discVal = rawVal;
-          discAmt = Math.min(lineGross, discVal);
-        }
-        const finalAmt = Math.max(0, lineGross - discAmt);
-        return {
-          ...item,
-          discountValue: discVal,
-          discountAmount: discAmt,
-          finalAmount: finalAmt,
-        };
-      })
+      prev.map((item, i) =>
+        i !== idx ? item : recalcLine(item, item.quantity || 1, item.discountType || 'amount', value)
+      )
     );
   };
 
@@ -347,25 +346,7 @@ export const TestPOSPage: React.FC = () => {
       prev.map((item, i) => {
         if (i !== idx) return item;
         const nextType = item.discountType === 'percent' ? 'amount' : 'percent';
-        const qty = item.quantity || 1;
-        const unitPrice = parseFloat(String(item.price || 0));
-        const lineGross = unitPrice * qty;
-        let discVal = item.discountValue || 0;
-        let discAmt = 0;
-        if (nextType === 'percent') {
-          discVal = Math.min(100, discVal);
-          discAmt = (lineGross * discVal) / 100;
-        } else {
-          discAmt = Math.min(lineGross, discVal);
-        }
-        const finalAmt = Math.max(0, lineGross - discAmt);
-        return {
-          ...item,
-          discountType: nextType,
-          discountValue: discVal,
-          discountAmount: discAmt,
-          finalAmount: finalAmt,
-        };
+        return recalcLine(item, item.quantity || 1, nextType, item.discountValue || 0);
       })
     );
   };
@@ -399,12 +380,25 @@ export const TestPOSPage: React.FC = () => {
 
   const subtotalAfterItemDiscounts = Math.max(0, grossSubtotal - totalItemDiscounts);
 
-  const calculatedInvoiceDiscount = useMemo(() => {
-    if (discountType === 'percent') {
-      return (subtotalAfterItemDiscounts * (discountVal || 0)) / 100;
-    }
-    return Math.min(subtotalAfterItemDiscounts, discountVal || 0);
-  }, [discountType, discountVal, subtotalAfterItemDiscounts]);
+  // Total discount allowed by each test's max % — invoice discount can't go beyond it
+  const maxAllowedDiscount = useMemo(() => {
+    return cartItems.reduce((sum, item) => {
+      const lineGross = (parseFloat(String(item.price)) || 0) * (item.quantity || 1);
+      return sum + (lineGross * getMaxDiscountPercent(item)) / 100;
+    }, 0);
+  }, [cartItems]);
+  const remainingDiscountAllowance = Math.max(0, maxAllowedDiscount - totalItemDiscounts);
+
+  const requestedInvoiceDiscount =
+    discountType === 'percent'
+      ? (subtotalAfterItemDiscounts * (discountVal || 0)) / 100
+      : discountVal || 0;
+  const calculatedInvoiceDiscount = Math.min(
+    requestedInvoiceDiscount,
+    remainingDiscountAllowance,
+    subtotalAfterItemDiscounts
+  );
+  const invoiceDiscountCapped = requestedInvoiceDiscount > calculatedInvoiceDiscount + 0.009;
 
   const totalDiscount = totalItemDiscounts + calculatedInvoiceDiscount;
   const grandTotal = Math.max(0, grossSubtotal - totalDiscount);
@@ -438,6 +432,10 @@ export const TestPOSPage: React.FC = () => {
     }
     if (cartItems.length === 0) {
       alert('Please select at least one diagnostic test.');
+      return;
+    }
+    if (totalDiscount > 0 && notes.trim().length < 5) {
+      alert('Discount given — please write the reason in the Discount Note (why the discount was given).');
       return;
     }
 
@@ -474,6 +472,7 @@ export const TestPOSPage: React.FC = () => {
           discountType: item.discountType || 'amount',
           discountValue: item.discountValue || 0,
           discountAmount: parseFloat(String(item.discountAmount || 0)),
+          maxDiscountPercent: getMaxDiscountPercent(item),
           finalAmount: parseFloat(String(item.finalAmount || 0)),
           deliveryDate: deliveryDate || item.deliveryDate || 'Tomorrow 4:00 PM',
           roomNumber: item.roomNumber,
@@ -1063,6 +1062,9 @@ export const TestPOSPage: React.FC = () => {
                     const itemDiscAmount = parseFloat(String(item.discountAmount || 0));
                     const finalAmount = parseFloat(String(item.finalAmount || (lineGross - itemDiscAmount)));
                     const itemDiscType = item.discountType || 'amount';
+                    const maxPct = getMaxDiscountPercent(item);
+                    const maxLineDisc = (lineGross * maxPct) / 100;
+                    const atMax = maxPct > 0 && itemDiscAmount >= maxLineDisc - 0.009;
 
                     return (
                       <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
@@ -1090,6 +1092,15 @@ export const TestPOSPage: React.FC = () => {
                               • Due: {item.deliveryDate || deliveryDate}
                             </span>
                           </div>
+                          {maxPct > 0 ? (
+                            <span className="mt-0.5 inline-flex items-center gap-1 rounded bg-amber-50 border border-amber-200 px-1.5 py-px text-[10px] font-semibold text-amber-800">
+                              Max discount: {maxPct}% (up to ৳{maxLineDisc.toFixed(0)})
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 inline-flex items-center rounded bg-slate-100 border border-slate-200 px-1.5 py-px text-[10px] font-semibold text-slate-500">
+                              Fixed price — no discount
+                            </span>
+                          )}
                         </td>
 
                         {/* Standard Rate */}
@@ -1130,10 +1141,13 @@ export const TestPOSPage: React.FC = () => {
 
                         {/* Line Discount */}
                         <td className="py-2 px-3 text-center">
-                          <div className="inline-flex items-center border border-slate-300 focus-within:border-primary rounded-lg bg-white overflow-hidden h-8">
+                          <div className={`inline-flex items-center border rounded-lg bg-white overflow-hidden h-8 ${maxPct === 0 ? 'opacity-50 border-slate-200' : atMax ? 'border-amber-400' : 'border-slate-300 focus-within:border-primary'}`}>
                             <input
                               type="number"
                               min={0}
+                              max={itemDiscType === 'percent' ? maxPct : Math.floor(maxLineDisc)}
+                              disabled={maxPct === 0}
+                              title={maxPct === 0 ? 'This test has a fixed price' : `Max ${maxPct}% (৳${maxLineDisc.toFixed(0)})`}
                               placeholder="0"
                               value={item.discountValue || ''}
                               onChange={(e) =>
@@ -1148,12 +1162,18 @@ export const TestPOSPage: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => handleToggleItemDiscountType(idx)}
+                              disabled={maxPct === 0}
                               className="w-8 h-8 flex items-center justify-center text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition cursor-pointer border-l border-slate-200 shrink-0"
                               title="Toggle discount type (BDT / %)"
                             >
                               {itemDiscType === 'amount' ? '৳' : '%'}
                             </button>
                           </div>
+                          {atMax && (
+                            <span className="block text-[10px] font-medium text-amber-700 mt-0.5">
+                              Max {maxPct}% reached
+                            </span>
+                          )}
                         </td>
 
                         {/* Net Total */}
@@ -1196,6 +1216,28 @@ export const TestPOSPage: React.FC = () => {
 
         {/* ================= 3. FIXED BOTTOM COMPACT FINANCIAL SETTLEMENT DOCK (shrink-0) ================= */}
         <div className="shrink-0 bg-white rounded-xl p-2 sm:p-2.5 border border-slate-200/90 shadow-2xs">
+          {/* Discount Note — required whenever any discount is given */}
+          {totalDiscount > 0 && (
+            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50/60 p-2">
+              <label className="flex items-center justify-between text-[11px] font-semibold text-amber-900 mb-1">
+                <span>
+                  Discount Note <span className="text-rose-600">*</span>{' '}
+                  <span className="font-normal text-amber-800">(why was ৳{totalDiscount.toFixed(0)} discount given? Who approved?)</span>
+                </span>
+                <span className="font-mono font-normal text-amber-700">{notes.length}/1000</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value.slice(0, 1000))}
+                rows={2}
+                placeholder="e.g. Poor patient, approved by Dr. Rahman / Staff family discount / Referred by Dr. X..."
+                className={`w-full resize-y rounded-md border bg-white px-2 py-1.5 text-xs text-slate-900 focus:outline-hidden ${
+                  notes.trim().length < 5 ? 'border-amber-400 focus:border-amber-500' : 'border-slate-300 focus:border-primary'
+                }`}
+              />
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
             {/* Left Col (4 Cols): Special Invoice Discount & Payment Method */}
             <div className="lg:col-span-4 space-y-1">
@@ -1222,6 +1264,13 @@ export const TestPOSPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+              {cartItems.length > 0 && (
+                <p className={`text-[10px] pl-1 ${invoiceDiscountCapped ? 'text-amber-700 font-semibold' : 'text-slate-400'}`}>
+                  {invoiceDiscountCapped
+                    ? `Limited to test max — only ৳${calculatedInvoiceDiscount.toFixed(0)} applied`
+                    : `Discount allowed left: ৳${remainingDiscountAllowance.toFixed(0)}`}
+                </p>
+              )}
 
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-medium text-slate-600 shrink-0">Pay Via:</span>

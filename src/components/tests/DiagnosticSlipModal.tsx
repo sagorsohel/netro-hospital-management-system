@@ -407,7 +407,11 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
                   ? `<div class="ledger-row" style="color: #008A3D; font-weight: 600;">
                        <span>Special Diagnostic Discount:</span>
                        <span>-৳${discountNum.toLocaleString()}</span>
-                     </div>`
+                     </div>${
+                       invoice.notes
+                         ? `<div style="font-size: 9.5px; color: #475569; padding: 2px 0 4px; font-style: italic;">Discount note: ${String(invoice.notes).replace(/</g, '&lt;')}</div>`
+                         : ''
+                     }`
                   : ''
               }
               <div class="ledger-row grand-total-row">
@@ -689,6 +693,12 @@ export const DiagnosticSlipModal: React.FC<DiagnosticSlipModalProps> = ({
                     -৳{parseFloat(String(invoice.discountAmount || 0)).toLocaleString()}
                   </span>
                 </div>
+              )}
+
+              {parseFloat(String(invoice.discountAmount || 0)) > 0 && invoice.notes && (
+                <p className="text-[11px] text-slate-600 italic bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                  Discount note: {invoice.notes}
+                </p>
               )}
 
               <div className="flex justify-between text-sm font-black text-slate-900 pt-1.5 border-t border-slate-200">

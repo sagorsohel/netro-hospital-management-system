@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Receipt,
@@ -31,7 +31,7 @@ import {
   useDeleteExpenseMutation,
   type Expense,
 } from '../../store/api/expenseApi';
-import { EXPENSE_CATEGORIES } from './ExpenseFormPage';
+import { EXPENSE_CATEGORIES, getSavedCustomCategories } from './ExpenseFormPage';
 import { useAppSelector } from '../../store/hooks';
 import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
@@ -94,6 +94,22 @@ export const ExpensesPage: React.FC = () => {
     totalPages: 1,
     totalAmount: 0,
   };
+
+  const availableCategories = useMemo(() => {
+    const list = [...EXPENSE_CATEGORIES];
+    const savedCustom = getSavedCustomCategories();
+    savedCustom.forEach((c) => {
+      if (!list.some((item) => item.toLowerCase() === c.toLowerCase())) {
+        list.push(c);
+      }
+    });
+    stats?.categoryBreakdown?.forEach((b) => {
+      if (b.category && !list.some((item) => item.toLowerCase() === b.category.toLowerCase())) {
+        list.push(b.category);
+      }
+    });
+    return list;
+  }, [stats]);
 
   const hasActiveFilters =
     Boolean(search) ||
@@ -352,7 +368,7 @@ export const ExpensesPage: React.FC = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {EXPENSE_CATEGORIES.map((cat) => (
+                {availableCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
                   </SelectItem>

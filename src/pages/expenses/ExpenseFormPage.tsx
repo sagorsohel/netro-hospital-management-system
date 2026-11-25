@@ -17,6 +17,8 @@ import {
   X,
   FileCheck2,
   RefreshCw,
+  Plus,
+  Sparkles,
 } from 'lucide-react';
 import {
   useGetExpenseByIdQuery,
@@ -37,6 +39,10 @@ import {
 } from '../../components/ui/select';
 
 export const EXPENSE_CATEGORIES = [
+  'Hospital Rent',
+  'Staff Salary',
+  'Guest Hospitality',
+  'Hospital Camp',
   'Utility Bills (Electricity, Water, Gas)',
   'Medical Equipment & Tools',
   'Facility & Lift Maintenance',
@@ -47,6 +53,42 @@ export const EXPENSE_CATEGORIES = [
   'Staff Refreshments & Canteen',
   'Emergency & Miscellaneous',
 ];
+
+export const CUSTOM_CATEGORIES_STORAGE_KEY = 'netro_custom_expense_categories';
+
+export const getSavedCustomCategories = (): string[] => {
+  try {
+    const raw = localStorage.getItem(CUSTOM_CATEGORIES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveCustomCategory = (categoryName: string) => {
+  const trimmed = categoryName.trim();
+  if (!trimmed) return;
+  const isDefault = EXPENSE_CATEGORIES.some(
+    (c) => c.toLowerCase() === trimmed.toLowerCase()
+  );
+  if (isDefault) return;
+
+  const current = getSavedCustomCategories();
+  if (!current.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+    try {
+      localStorage.setItem(
+        CUSTOM_CATEGORIES_STORAGE_KEY,
+        JSON.stringify([...current, trimmed])
+      );
+    } catch (e) {
+      console.error('Failed to save custom category to localStorage', e);
+    }
+  }
+};
 
 const PAYMENT_METHODS = [
   'Cash',
@@ -77,6 +119,9 @@ export const ExpenseFormPage: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [purpose, setPurpose] = useState('');
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [customCategories, setCustomCategories] = useState<string[]>(() => getSavedCustomCategories());
+  const [isCustomMode, setIsCustomMode] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [billCopy, setBillCopy] = useState('');
   const [localPreview, setLocalPreview] = useState('');
   const [voucherNo, setVoucherNo] = useState('');
@@ -96,7 +141,25 @@ export const ExpenseFormPage: React.FC = () => {
       setDate(exp.date || new Date().toISOString().slice(0, 10));
       setAmount(exp.amount ? String(exp.amount) : '');
       setPurpose(exp.purpose || '');
-      setCategory(exp.category || EXPENSE_CATEGORIES[0]);
+
+      const existingCat = exp.category || EXPENSE_CATEGORIES[0];
+      const isPredefined = EXPENSE_CATEGORIES.some(
+        (c) => c.toLowerCase() === existingCat.toLowerCase()
+      );
+      if (isPredefined) {
+        const matched = EXPENSE_CATEGORIES.find(
+          (c) => c.toLowerCase() === existingCat.toLowerCase()
+        );
+        setCategory(matched || existingCat);
+        setIsCustomMode(false);
+      } else {
+        saveCustomCategory(existingCat);
+        setCustomCategories(getSavedCustomCategories());
+        setCategory(existingCat);
+        setCustomCategoryInput(existingCat);
+        setIsCustomMode(false);
+      }
+
       setBillCopy(exp.billCopy || '');
       setLocalPreview(exp.billCopy || '');
       setVoucherNo(exp.voucherNo || '');
@@ -166,10 +229,15 @@ export const ExpenseFormPage: React.FC = () => {
       return;
     }
 
-    if (!category.trim()) {
-      setError("Please select an expense category.");
+    const finalCategory = (isCustomMode ? customCategoryInput : category).trim();
+
+    if (!finalCategory) {
+      setError("Please select or enter an expense category.");
       return;
     }
+
+    saveCustomCategory(finalCategory);
+    setCustomCategories(getSavedCustomCategories());
 
     const payload = {
       title: title.trim(),
@@ -177,7 +245,7 @@ export const ExpenseFormPage: React.FC = () => {
       date: date.trim(),
       amount: String(amount),
       purpose: purpose.trim(),
-      category: category.trim(),
+      category: finalCategory,
       billCopy: billCopy || undefined,
       voucherNo: voucherNo.trim() || undefined,
       paymentMethod: paymentMethod.trim(),
@@ -298,24 +366,125 @@ export const ExpenseFormPage: React.FC = () => {
 
             {/* Category */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">
-                Expense Category <span className="text-accent">*</span>
-              </Label>
-              <Select
-                value={category}
-                onValueChange={(val) => setCategory(val)}
-              >
-                <SelectTrigger className="h-10 text-xs">
-                  <SelectValue placeholder="Select expense category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-slate-700">
+                  Expense Category <span className="text-accent">*</span>
+                </Label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isCustomMode) {
+                      setIsCustomMode(false);
+                      if (!category || category === customCategoryInput) {
+                        setCategory(EXPENSE_CATEGORIES[0]);
+                      }
+                    } else {
+                      setIsCustomMode(true);
+                      setCustomCategoryInput(
+                        !EXPENSE_CATEGORIES.includes(category) ? category : ''
+                      );
+                    }
+                  }}
+                  className="text-[11px] font-semibold text-primary hover:text-primary-hover flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  {isCustomMode ? (
+                    <>
+                      <ArrowLeft className="h-3 w-3" />
+                      <span>Select Preset List</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3 w-3" />
+                      <span>+ Manually Add Category</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {isCustomMode ? (
+                <div className="space-y-2 p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-emerald-950 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Enter Custom / Manual Category
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCustomMode(false);
+                        setCategory(EXPENSE_CATEGORIES[0]);
+                      }}
+                      className="text-[10px] text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                    >
+                      Cancel & Return to Presets
+                    </button>
+                  </div>
+                  <Input
+                    autoFocus
+                    placeholder="Type custom category (e.g. Hospital Renovation, Staff Eid Bonus...)"
+                    value={customCategoryInput}
+                    onChange={(e) => {
+                      setCustomCategoryInput(e.target.value);
+                      setCategory(e.target.value);
+                    }}
+                    className="h-10 text-xs bg-white border-emerald-300 focus:border-primary font-medium"
+                    required
+                  />
+                  <p className="text-[10px] text-emerald-700 font-medium">
+                    This custom category will be assigned to this voucher and saved for future expense entries.
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={category}
+                  onValueChange={(val) => {
+                    if (val === '__custom__') {
+                      setIsCustomMode(true);
+                      setCustomCategoryInput('');
+                    } else {
+                      setCategory(val);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-10 text-xs">
+                    <SelectValue placeholder="Select expense category" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {/* Default Predefined Categories */}
+                    {EXPENSE_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
+
+                    {/* Custom / Manually Added Categories */}
+                    {customCategories.filter((c) => !EXPENSE_CATEGORIES.includes(c)).length > 0 && (
+                      <>
+                        <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-y border-slate-100 my-1">
+                          Custom Added Categories
+                        </div>
+                        {customCategories
+                          .filter((c) => !EXPENSE_CATEGORIES.includes(c))
+                          .map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                      </>
+                    )}
+
+                    {/* Action to manually enter category */}
+                    <div className="border-t border-slate-100 my-1 pt-1">
+                      <SelectItem value="__custom__" className="text-primary font-bold">
+                        <span className="flex items-center gap-1.5 text-primary">
+                          <Plus className="h-3.5 w-3.5" />
+                          + Manually Add / Type New Category...
+                        </span>
+                      </SelectItem>
+                    </div>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Amount */}

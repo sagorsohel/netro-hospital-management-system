@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { DateRangeFilter, dateRangeLabel, dateRangeToParams, type DateRangeValue } from '../../components/common/DateRangeFilter';
+import { TablePager } from '../../components/common/TablePager';
 import { useNavigate } from 'react-router-dom';
 import {
   BedDouble,
@@ -43,13 +45,17 @@ export const AdmissionsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ preset: 'all' });
+  const rangeParams = useMemo(() => dateRangeToParams(dateRange), [dateRange]);
 
   // Queries & Mutations
-  const { data: admissionsData, isLoading } = useGetAdmissionsQuery({
+  const { data: admissionsData, isLoading, isFetching } = useGetAdmissionsQuery({
     search: searchTerm || undefined,
     status: statusFilter !== 'all' ? statusFilter : undefined,
     page,
-    limit: 10,
+    limit,
+    ...rangeParams,
   });
 
   const [dischargeAdmission, { isLoading: isDischarging }] = useDischargeAdmissionMutation();
@@ -91,27 +97,17 @@ export const AdmissionsPage: React.FC = () => {
   const admissionsList = admissionsData?.data || [];
   const meta = admissionsData?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
 
-  // Calculate live summary stats from current registry
-  const stats = useMemo(() => {
-    let admittedCount = 0;
-    let dischargedCount = 0;
-    let totalBilled = 0;
-    let totalDue = 0;
-
-    admissionsList.forEach((adm) => {
-      if (adm.status === 'Admitted') admittedCount += 1;
-      if (adm.status === 'Discharged') dischargedCount += 1;
-      totalBilled += parseFloat(String(adm.grandTotal || 0));
-      totalDue += parseFloat(String(adm.dueAmount || 0));
-    });
-
-    return {
-      admittedCount,
-      dischargedCount,
-      totalBilled,
-      totalDue,
-    };
-  }, [admissionsList]);
+  // Totals for the whole selected period (from the server, not just this page)
+  const stats = {
+    currentlyAdmitted: admissionsData?.summary?.currentlyAdmitted ?? 0,
+    admissions: admissionsData?.summary?.admissions ?? meta.total,
+    discharged: admissionsData?.summary?.discharged ?? 0,
+    totalBilled: admissionsData?.summary?.billed ?? 0,
+    collected: admissionsData?.summary?.collected ?? 0,
+    totalDue: admissionsData?.summary?.due ?? 0,
+    dueCount: admissionsData?.summary?.dueCount ?? 0,
+  };
+  const periodLabel = dateRangeLabel(dateRange);
 
   return (
     <div className="space-y-3.5 max-w-[1600px] mx-auto select-none pb-6">
@@ -153,6 +149,20 @@ export const AdmissionsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Date filter */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2 bg-white p-2 sm:px-3 rounded-xl border border-slate-200/90 shadow-2xs">
+        <DateRangeFilter
+          value={dateRange}
+          onChange={(v) => {
+            setDateRange(v);
+            setPage(1);
+          }}
+        />
+        <span className="text-[11px] text-slate-500">
+          Figures for: <strong className="text-slate-700">{periodLabel}</strong> (by admission date){isFetching && <span className="text-slate-400"> · updating…</span>}
+        </span>
+      </div>
+
       {/* 2. Compact Modern KPI Metric Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
         {/* Card 1: Currently Admitted */}
@@ -163,9 +173,9 @@ export const AdmissionsPage: React.FC = () => {
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-xl font-bold font-mono text-slate-900">
-                {stats.admittedCount}
+                {stats.currentlyAdmitted}
               </span>
-              <span className="text-[11px] text-emerald-700 font-medium">Occupying Beds</span>
+              <span className="text-[11px] text-emerald-700 font-medium">Occupying beds now</span>
             </div>
           </div>
           <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
@@ -177,13 +187,13 @@ export const AdmissionsPage: React.FC = () => {
         <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-              Discharged (Page)
+              Admissions
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-xl font-bold font-mono text-slate-900">
-                {stats.dischargedCount}
+                {stats.admissions}
               </span>
-              <span className="text-[11px] text-slate-400">Patients Released</span>
+              <span className="text-[11px] text-slate-400">{stats.discharged} discharged</span>
             </div>
           </div>
           <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
@@ -195,13 +205,13 @@ export const AdmissionsPage: React.FC = () => {
         <div className="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">
-              Total Page Billing
+              Total Billing
             </span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-xl font-bold font-mono text-slate-900">
                 ৳{stats.totalBilled.toLocaleString()}
               </span>
-              <span className="text-[11px] text-emerald-700 font-medium">Billed IPD</span>
+              <span className="text-[11px] text-emerald-700 font-medium">৳{stats.collected.toLocaleString()} collected</span>
             </div>
           </div>
           <div className="h-9 w-9 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
@@ -219,7 +229,9 @@ export const AdmissionsPage: React.FC = () => {
               <span className={`text-xl font-bold font-mono ${stats.totalDue > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
                 ৳{stats.totalDue.toLocaleString()}
               </span>
-              <span className="text-[11px] text-slate-400">Pending Collection</span>
+              <span className="text-[11px] text-slate-400">
+                {stats.dueCount > 0 ? `${stats.dueCount} patient${stats.dueCount === 1 ? '' : 's'}` : 'Pending Collection'}
+              </span>
             </div>
           </div>
           <div className="h-9 w-9 rounded-xl bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
@@ -292,7 +304,7 @@ export const AdmissionsPage: React.FC = () => {
           </div>
 
           <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono shrink-0">
-            {meta.total} Admissions Total
+            {meta.total} in period
           </span>
         </div>
       </div>
@@ -345,7 +357,7 @@ export const AdmissionsPage: React.FC = () => {
                       {/* Sl Number */}
                       <td className="py-2 px-3 text-center">
                         <span className="h-5 w-5 rounded bg-slate-100 text-slate-700 text-[11px] font-semibold inline-flex items-center justify-center">
-                          {(page - 1) * 10 + idx + 1}
+                          {(page - 1) * limit + idx + 1}
                         </span>
                       </td>
 
@@ -518,27 +530,18 @@ export const AdmissionsPage: React.FC = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="p-2 sm:px-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <span>
-            Showing page {meta.page} of {meta.totalPages} ({meta.total} admissions total)
-          </span>
-          <div className="flex items-center gap-1.5">
-            <button
-              disabled={meta.page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
-            >
-              Previous
-            </button>
-            <button
-              disabled={meta.page >= meta.totalPages}
-              onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <TablePager
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          limit={limit}
+          noun="admissions"
+          onPageChange={setPage}
+          onLimitChange={(n) => {
+            setLimit(n);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Discharge Confirmation Modal */}

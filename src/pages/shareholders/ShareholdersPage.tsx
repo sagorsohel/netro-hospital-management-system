@@ -549,7 +549,6 @@ export const ShareholdersPage: React.FC = () => {
             <Pagination
               currentPage={pagination.page}
               totalPages={pagination.totalPages}
-              totalItems={pagination.total}
               itemsPerPage={pagination.limit}
               onPageChange={setPage}
             />

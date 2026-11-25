@@ -55,6 +55,16 @@ export interface DiagnosticInvoiceListResponse {
     limit: number;
     totalPages: number;
   };
+  /** Totals for the whole filtered period (not just this page) */
+  summary?: {
+    invoices: number;
+    tests: number;
+    billed: number;
+    collected: number;
+    due: number;
+    discount: number;
+    dueCount: number;
+  };
 }
 
 export interface SingleDiagnosticInvoiceResponse {
@@ -106,6 +116,8 @@ export interface DiagnosticInvoiceQueryParams {
   sampleStatus?: string;
   page?: number;
   limit?: number;
+  from?: string; // ISO, inclusive
+  to?: string; // ISO, exclusive
 }
 
 export interface SettleDiagnosticDuePayload {

@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { DateRangeFilter, dateRangeLabel, dateRangeToParams, type DateRangeValue } from '../../components/common/DateRangeFilter';
+import { TablePager } from '../../components/common/TablePager';
 import { useNavigate } from 'react-router-dom';
 import {
   FlaskConical,
@@ -11,6 +13,8 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Receipt,
+  Wallet,
 } from 'lucide-react';
 import {
   Select,
@@ -33,13 +37,17 @@ export const DiagnosticInvoicesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [dateRange, setDateRange] = useState<DateRangeValue>({ preset: 'all' });
+  const rangeParams = useMemo(() => dateRangeToParams(dateRange), [dateRange]);
 
   // Queries & Mutations
-  const { data: invoicesData, isLoading } = useGetDiagnosticInvoicesQuery({
+  const { data: invoicesData, isLoading, isFetching } = useGetDiagnosticInvoicesQuery({
     search: searchTerm || undefined,
     paymentStatus: paymentFilter !== 'all' ? paymentFilter : undefined,
     page,
-    limit: 10,
+    limit,
+    ...rangeParams,
   });
 
   const [settleDueMutation, { isLoading: isSettling }] = useSettleDiagnosticDueMutation();
@@ -82,6 +90,9 @@ export const DiagnosticInvoicesPage: React.FC = () => {
 
   const invoicesList = invoicesData?.data || [];
   const meta = invoicesData?.meta || { total: 0, page: 1, limit: 10, totalPages: 1 };
+  const summary = invoicesData?.summary || { invoices: 0, tests: 0, billed: 0, collected: 0, due: 0, discount: 0, dueCount: 0 };
+  const collectedPct = summary.billed > 0 ? Math.round((summary.collected / summary.billed) * 100) : 0;
+  const periodLabel = dateRangeLabel(dateRange);
 
   return (
     <div className="space-y-6 pb-10">
@@ -110,6 +121,74 @@ export const DiagnosticInvoicesPage: React.FC = () => {
           <Plus className="h-4 w-4" />
           <span>New Diagnostic POS Order</span>
         </button>
+      </div>
+
+      {/* Date filter + period totals */}
+      <div className="p-3 rounded-3xl bg-white border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+        <DateRangeFilter
+          value={dateRange}
+          onChange={(v) => {
+            setDateRange(v);
+            setPage(1);
+          }}
+        />
+        <span className="text-[11px] text-slate-500">
+          Figures for: <strong className="text-slate-700">{periodLabel}</strong>
+          {isFetching && <span className="text-slate-400"> · updating…</span>}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Invoices</span>
+            <div className="text-xl font-black font-mono text-dark mt-0.5">{summary.invoices}</div>
+            <span className="text-[11px] text-slate-400">{summary.tests} tests ordered</span>
+          </div>
+          <div className="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><FlaskConical className="h-4 w-4" /></div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Billed</span>
+            <div className="text-xl font-black font-mono text-dark mt-0.5">৳{summary.billed.toLocaleString()}</div>
+            <span className="text-[11px] text-slate-400">{summary.discount > 0 ? `৳${summary.discount.toLocaleString()} discount given` : 'After discounts'}</span>
+          </div>
+          <div className="h-9 w-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center"><Receipt className="h-4 w-4" /></div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Collected</span>
+            <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Wallet className="h-4 w-4" /></div>
+          </div>
+          <div className="text-xl font-black font-mono text-emerald-700 -mt-1">৳{summary.collected.toLocaleString()}</div>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${collectedPct}%` }} />
+            </div>
+            <span className="text-[10px] font-bold text-emerald-700">{collectedPct}%</span>
+          </div>
+        </div>
+        <div className={`p-4 rounded-2xl border shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex items-center justify-between ${summary.due > 0 ? 'bg-rose-50/50 border-rose-100' : 'bg-white border-slate-100'}`}>
+          <div>
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Due</span>
+            <div className={`text-xl font-black font-mono mt-0.5 ${summary.due > 0 ? 'text-rose-600' : 'text-slate-400'}`}>৳{summary.due.toLocaleString()}</div>
+            {summary.dueCount > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentFilter('hasDue');
+                  setPage(1);
+                }}
+                className="text-[11px] text-rose-700 font-semibold hover:underline cursor-pointer"
+              >
+                {summary.dueCount} invoice{summary.dueCount === 1 ? '' : 's'} with due →
+              </button>
+            ) : (
+              <span className="text-[11px] text-slate-400">Nothing pending</span>
+            )}
+          </div>
+          <div className="h-9 w-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center"><AlertCircle className="h-4 w-4" /></div>
+        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -150,6 +229,7 @@ export const DiagnosticInvoicesPage: React.FC = () => {
                 <SelectItem value="Paid">Fully Paid</SelectItem>
                 <SelectItem value="Partial">Partial Paid</SelectItem>
                 <SelectItem value="Due">Unpaid / Due</SelectItem>
+                <SelectItem value="hasDue">Any due (partial + unpaid)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -350,27 +430,18 @@ export const DiagnosticInvoicesPage: React.FC = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="p-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-          <span>
-            Showing page {meta.page} of {meta.totalPages} ({meta.total} invoices total)
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              disabled={meta.page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
-            >
-              Previous
-            </button>
-            <button
-              disabled={meta.page >= meta.totalPages}
-              onClick={() => setPage((p) => Math.min(meta.totalPages, p + 1))}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 transition cursor-pointer"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <TablePager
+          page={meta.page}
+          totalPages={meta.totalPages}
+          total={meta.total}
+          limit={limit}
+          noun="invoices"
+          onPageChange={setPage}
+          onLimitChange={(n) => {
+            setLimit(n);
+            setPage(1);
+          }}
+        />
       </div>
 
       {/* Settle Due Modal */}

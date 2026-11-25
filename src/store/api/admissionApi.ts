@@ -61,6 +61,17 @@ export interface AdmissionListResponse {
     limit: number;
     totalPages: number;
   };
+  /** Totals for the whole filtered period (not just this page) */
+  summary?: {
+    admissions: number;
+    discharged: number;
+    stillAdmitted: number;
+    currentlyAdmitted: number;
+    billed: number;
+    collected: number;
+    due: number;
+    dueCount: number;
+  };
 }
 
 export interface SingleAdmissionResponse {
@@ -132,6 +143,8 @@ export interface AdmissionQueryParams {
   doctorId?: string;
   page?: number;
   limit?: number;
+  from?: string; // ISO, inclusive
+  to?: string; // ISO, exclusive
 }
 
 export interface DischargePayload {

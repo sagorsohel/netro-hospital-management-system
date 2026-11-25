@@ -48,6 +48,7 @@ import { Pagination } from '../../components/common/Pagination';
 export const ExpensesPage: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const isAdmin = user?.role === 'admin';
+  const isShareholder = user?.role === 'shareholder';
 
   // Filters & Pagination State
   const [page, setPage] = useState(1);
@@ -145,6 +146,14 @@ export const ExpensesPage: React.FC = () => {
 
   return (
     <div className="space-y-6 select-none font-sans pb-12">
+      {isShareholder && (
+        <div className="rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs px-4 py-2.5 flex items-center gap-2">
+          <Eye className="h-4 w-4 text-indigo-600 shrink-0" />
+          <span>
+            <strong>View only:</strong> you are signed in as a shareholder. You can see all hospital expenses and bill copies, but cannot add, edit or delete.
+          </span>
+        </div>
+      )}
       {/* 1. Page Header Banner */}
       <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-100/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

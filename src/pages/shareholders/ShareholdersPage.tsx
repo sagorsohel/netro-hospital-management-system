@@ -1,620 +1,568 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  PieChart,
-  Users,
-  TrendingUp,
-  DollarSign,
-  Plus,
-  ShieldAlert,
-  Eye,
-  Edit2,
-  Trash2,
-  Phone,
-  Mail,
-  Building,
-  CheckCircle2,
-  X,
-  CreditCard,
-  Lock,
-  ArrowUpRight,
-  Receipt,
+  AlertTriangle,
   Award,
+  CheckCircle2,
+  Ticket,
+  Wallet,
+  Edit2,
+  FileText,
+  KeyRound,
+  Layers,
+  Phone,
+  PieChart,
+  Plus,
+  Power,
+  Search,
+  Trash2,
+  TrendingUp,
+  User,
 } from 'lucide-react';
 import {
-  useGetShareholdersQuery,
-  useCreateShareholderMutation,
-  useUpdateShareholderMutation,
+  money,
+  PAYMENT_STATUSES,
+  SHAREHOLDER_STATUSES,
+  STATUS_STYLE,
   useDeleteShareholderMutation,
+  useGetShareholdersQuery,
+  useGetSharePlansQuery,
+  useUpdateShareholderAccountMutation,
+  useUpdateShareholderStatusMutation,
   type Shareholder,
 } from '../../store/api/shareholderApi';
+import { useAppSelector } from '../../store/hooks';
+import { Pagination } from '../../components/common/Pagination';
+import { ShareholderAccountModal } from '../../components/shareholders/ShareholderAccountModal';
+import { ShareholderDetailsModal } from '../../components/shareholders/ShareholderDetailsModal';
+
+const PAGE_SIZE = 20;
+const COLORS = ['bg-teal-600', 'bg-blue-600', 'bg-purple-600', 'bg-amber-600', 'bg-emerald-600', 'bg-rose-500', 'bg-indigo-500'];
+const selectCls = 'h-8.5 px-2.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:border-teal-500 focus:outline-hidden';
 
 export const ShareholdersPage: React.FC = () => {
-  const { data: response, isLoading } = useGetShareholdersQuery();
-  const [createShareholder, { isLoading: isCreating }] = useCreateShareholderMutation();
-  const [updateShareholder, { isLoading: isUpdating }] = useUpdateShareholderMutation();
+  const navigate = useNavigate();
+  const role = useAppSelector((s) => s.auth.user?.role);
+  const isAdmin = role === 'admin' || role === 'super_admin';
+
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('');
+  const [planId, setPlanId] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('');
+  const [page, setPage] = useState(1);
+
+  // debounce the search box
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  const { data: response, isLoading, isFetching } = useGetShareholdersQuery({ page, limit: PAGE_SIZE, search, status, planId, paymentStatus });
+  const { data: plansRes } = useGetSharePlansQuery();
   const [deleteShareholder] = useDeleteShareholderMutation();
+  const [updateAccount] = useUpdateShareholderAccountMutation();
+  const [updateStatus] = useUpdateShareholderStatusMutation();
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingShareholder, setEditingShareholder] = useState<Shareholder | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [accountModal, setAccountModal] = useState<{ s: Shareholder; mode: 'create' | 'reset' } | null>(null);
 
-  // Form State
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [nid, setNid] = useState('');
-  const [ownershipPercentage, setOwnershipPercentage] = useState<string>('10');
-  const [investmentAmount, setInvestmentAmount] = useState<string>('1000000');
-  const [bankAccountDetails, setBankAccountDetails] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // Read-only Investor Portal simulation
-  const [viewOnlyShareholder, setViewOnlyShareholder] = useState<Shareholder | null>(null);
-
-  const shareholdersList = response?.data || [];
+  const list = response?.data || [];
+  const pagination = response?.pagination;
   const metrics = response?.metrics || {
     totalShareholders: 0,
     totalOwnershipAllocated: 0,
     availableOwnershipPercentage: 100,
-    hospitalFinancialSummary: {
-      totalIncome: 0,
-      totalExpense: 0,
-      netProfit: 0,
-    },
+    totalCapital: 0,
+    shareSales: undefined,
+    hospitalFinancialSummary: { totalIncome: 0, totalExpense: 0, netProfit: 0 },
   };
-
-  const handleOpenAdd = () => {
-    setEditingShareholder(null);
-    setName('');
-    setPhone('');
-    setEmail('');
-    setNid('');
-    setOwnershipPercentage('10');
-    setInvestmentAmount('1000000');
-    setBankAccountDetails('');
-    setNotes('');
-    setIsModalOpen(true);
+  const sales = metrics.shareSales || {
+    sharesSold: 0,
+    unitsSold: 0,
+    totalAmount: 0,
+    paidAmount: 0,
+    dueAmount: 0,
+    overdueAmount: 0,
+    shareholdersWithDue: 0,
+    byPlan: [],
   };
+  const collectedPct = sales.totalAmount > 0 ? Math.round((sales.paidAmount / sales.totalAmount) * 100) : 0;
+  const plans = plansRes?.data || [];
+  const hasFilters = !!(search || status || planId || paymentStatus);
 
-  const handleOpenEdit = (s: Shareholder) => {
-    setEditingShareholder(s);
-    setName(s.name);
-    setPhone(s.phone);
-    setEmail(s.email || '');
-    setNid(s.nid || '');
-    setOwnershipPercentage(String(s.ownershipPercentage));
-    setInvestmentAmount(String(s.investmentAmount || ''));
-    setBankAccountDetails(s.bankAccountDetails || '');
-    setNotes(s.notes || '');
-    setIsModalOpen(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const pct = parseFloat(ownershipPercentage);
-    if (isNaN(pct) || pct <= 0 || pct > 100) {
-      alert('Please enter a valid ownership percentage between 1 and 100.');
-      return;
-    }
-
+  const handleDelete = async (s: Shareholder) => {
+    if (!confirm(`Remove shareholder "${s.name}"?\n\nThe record and its history are kept for audit, but it disappears from lists and the login is disabled.`)) return;
     try {
-      if (editingShareholder) {
-        await updateShareholder({
-          id: editingShareholder.id,
-          data: {
-            name,
-            phone,
-            email,
-            nid,
-            ownershipPercentage: pct,
-            investmentAmount: parseFloat(investmentAmount) || 0,
-            bankAccountDetails,
-            notes,
-          },
-        }).unwrap();
-      } else {
-        await createShareholder({
-          name,
-          phone,
-          email,
-          nid,
-          ownershipPercentage: pct,
-          investmentAmount: parseFloat(investmentAmount) || 0,
-          bankAccountDetails,
-          notes,
-          status: 'Active',
-        }).unwrap();
-      }
-      setIsModalOpen(false);
+      await deleteShareholder(s.id).unwrap();
     } catch (err: any) {
-      alert(err?.data?.message || 'Failed to save shareholder.');
+      alert(err?.data?.message || 'Failed to remove shareholder.');
     }
   };
 
-  const handleDelete = async (id: string, sName: string) => {
-    if (confirm(`Are you sure you want to remove shareholder "${sName}"?`)) {
-      await deleteShareholder(id);
+  const handleToggleAccess = async (s: Shareholder) => {
+    if (!s.account) return;
+    const next = !s.account.isActive;
+    if (!confirm(`${next ? 'Enable' : 'Disable'} login for ${s.name} (${s.account.email})?`)) return;
+    try {
+      await updateAccount({ id: s.id, isActive: next }).unwrap();
+    } catch (err: any) {
+      alert(err?.data?.message || 'Failed to update login access.');
+    }
+  };
+
+  const handleStatus = async (s: Shareholder, next: string) => {
+    if (next === s.status) return;
+    const reason = next === 'Rejected' || next === 'Inactive' ? prompt(`Reason for marking ${s.name} as ${next}? (optional)`) ?? undefined : undefined;
+    try {
+      await updateStatus({ id: s.id, status: next, reason: reason || undefined }).unwrap();
+    } catch (err: any) {
+      alert(err?.data?.message || 'Failed to change status.');
     }
   };
 
   return (
     <div className="space-y-5 pb-12 select-none font-sans text-dark">
-      {/* 1. Header Banner */}
+      {/* Header */}
       <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-teal-700 uppercase tracking-wider mb-1">
             <PieChart className="h-4 w-4" />
-            <span>Section 4.7 — Hospital Ownership & Dividend Governance</span>
+            <span>Shareholder Management</span>
           </div>
           <h1 className="text-2xl font-black text-dark tracking-tight">Shareholder Panel</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage hospital equity partners, ownership allocations (%), and calculated profit dividends.
-          </p>
+          <p className="text-xs text-slate-500 mt-0.5">Profiles, nominees, purchased shares and payments, and shareholder logins.</p>
         </div>
-
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+          <Link
+            to="/shareholders/plans"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs transition"
           >
-            <Plus className="h-4 w-4" />
-            <span>Add Shareholder</span>
-          </button>
+            <Layers className="h-4 w-4" /> Share Plans
+          </Link>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => navigate('/shareholders/new')}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+            >
+              <Plus className="h-4 w-4" /> Add Shareholder
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. Executive KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Allocated Equity */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-1">
+      {/* Share sales — the main numbers */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Allocated Equity</span>
-            <div className="h-8 w-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
-              <PieChart className="h-4 w-4" />
+            <span className="text-[11px] font-bold text-slate-500 uppercase">Shares Sold</span>
+            <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Ticket className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-dark">
-            {metrics.totalOwnershipAllocated}%
-          </div>
-          <div className="text-[11px] text-teal-700 font-semibold flex items-center gap-1">
-            <span>Available unallocated: {metrics.availableOwnershipPercentage}%</span>
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2">
-            <div
-              className="bg-teal-600 h-full rounded-full"
-              style={{ width: `${Math.min(100, metrics.totalOwnershipAllocated)}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Hospital Net Profit */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Hospital Net Profit</span>
-            <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-emerald-700">
-            ৳{metrics.hospitalFinancialSummary.netProfit.toLocaleString()}
-          </div>
+          <div className="text-2xl font-black text-dark mt-1">{sales.sharesSold}</div>
           <p className="text-[11px] text-slate-400">
-            Revenue: ৳{metrics.hospitalFinancialSummary.totalIncome.toLocaleString()} | Exp: ৳{metrics.hospitalFinancialSummary.totalExpense.toLocaleString()}
+            to {metrics.totalShareholders} shareholder{metrics.totalShareholders === 1 ? '' : 's'}
           </p>
         </div>
 
-        {/* Total Shareholders */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-1">
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Active Shareholders</span>
-            <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users className="h-4 w-4" />
-            </div>
-          </div>
-          <div className="text-2xl font-black text-dark">{metrics.totalShareholders} Partners</div>
-          <p className="text-[11px] text-slate-400">Registered board stakeholders</p>
-        </div>
-
-        {/* Total Capital */}
-        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Capital Injected</span>
+            <span className="text-[11px] font-bold text-slate-500 uppercase">Total Sales</span>
             <div className="h-8 w-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-              <Award className="h-4 w-4" />
+              <Wallet className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-purple-900">
-            ৳
-            {shareholdersList
-              .reduce((sum, s) => sum + Number(s.investmentAmount || 0), 0)
-              .toLocaleString()}
+          <div className="text-2xl font-black text-purple-900 mt-1">{money(sales.totalAmount)}</div>
+          <p className="text-[11px] text-slate-400">Value of all shares sold</p>
+        </div>
+
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase">Collected</span>
+            <div className="h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400">Total hospital paid-up equity</p>
+          <div className="text-2xl font-black text-emerald-700 mt-1">{money(sales.paidAmount)}</div>
+          <div className="flex items-center gap-2 mt-1.5">
+            <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${collectedPct}%` }} />
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700">{collectedPct}%</span>
+          </div>
+        </div>
+
+        <div className={`rounded-2xl p-4 border shadow-xs ${sales.dueAmount > 0 ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-slate-100'}`}>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase">Due</span>
+            <div className="h-8 w-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+          </div>
+          <div className={`text-2xl font-black mt-1 ${sales.dueAmount > 0 ? 'text-amber-700' : 'text-slate-400'}`}>{money(sales.dueAmount)}</div>
+          <p className="text-[11px] text-slate-500">
+            {sales.shareholdersWithDue > 0
+              ? `${sales.shareholdersWithDue} shareholder${sales.shareholdersWithDue === 1 ? '' : 's'} owe money`
+              : 'Nothing due'}
+            {sales.overdueAmount > 0 && <span className="text-rose-600 font-semibold"> · {money(sales.overdueAmount)} overdue</span>}
+          </p>
         </div>
       </div>
 
-      {/* 3. Equity Share Distribution Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-2.5">
-        <div className="flex items-center justify-between text-xs">
-          <span className="font-bold text-slate-700">Equity Breakdown & Ownership Distribution</span>
-          <span className="font-mono text-slate-400 text-[11px]">100% Total Ownership</span>
+      {/* Sales by plan */}
+      {sales.byPlan.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700">Sales by plan</span>
+            <Link to="/shareholders/plans" className="text-[11px] font-semibold text-teal-700 hover:underline">
+              Manage plans →
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-[10px] uppercase text-slate-500 bg-slate-50">
+                <tr>
+                  <th className="py-2 px-4 text-left">Plan</th>
+                  <th className="py-2 px-4 text-right">Sold</th>
+                  <th className="py-2 px-4 text-right">Sales</th>
+                  <th className="py-2 px-4 text-right">Collected</th>
+                  <th className="py-2 px-4 text-right">Due</th>
+                  <th className="py-2 px-4 w-40">Collection</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {sales.byPlan.map((p) => {
+                  const pct = p.total > 0 ? Math.round((p.paid / p.total) * 100) : 0;
+                  return (
+                    <tr key={`${p.planId}-${p.planName}`}>
+                      <td className="py-2 px-4 font-semibold text-slate-800">{p.planName}</td>
+                      <td className="py-2 px-4 text-right font-mono">{p.sold}</td>
+                      <td className="py-2 px-4 text-right font-mono">{money(p.total)}</td>
+                      <td className="py-2 px-4 text-right font-mono text-emerald-700">{money(p.paid)}</td>
+                      <td className={`py-2 px-4 text-right font-mono ${p.due > 0 ? 'text-amber-700 font-semibold' : 'text-slate-400'}`}>{money(p.due)}</td>
+                      <td className="py-2 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-500 w-8 text-right">{pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="h-4 w-full bg-slate-100 rounded-xl overflow-hidden flex">
-          {shareholdersList.map((s, idx) => {
-            const colors = ['bg-teal-600', 'bg-blue-600', 'bg-purple-600', 'bg-amber-600', 'bg-emerald-600'];
-            const color = colors[idx % colors.length];
-            return (
-              <div
-                key={s.id}
-                className={`${color} h-full relative group transition-all`}
-                style={{ width: `${s.ownershipPercentage}%` }}
-                title={`${s.name}: ${s.ownershipPercentage}%`}
-              />
-            );
-          })}
-          {metrics.availableOwnershipPercentage > 0 && (
-            <div
-              className="bg-slate-200 h-full"
-              style={{ width: `${metrics.availableOwnershipPercentage}%` }}
-              title={`Treasury: ${metrics.availableOwnershipPercentage}%`}
-            />
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
-          {shareholdersList.map((s, idx) => {
-            const colors = ['bg-teal-600', 'bg-blue-600', 'bg-purple-600', 'bg-amber-600', 'bg-emerald-600'];
-            const color = colors[idx % colors.length];
-            return (
-              <div key={s.id} className="flex items-center gap-1.5 text-[11px]">
-                <div className={`h-2.5 w-2.5 rounded-full ${color}`} />
-                <span className="font-semibold text-slate-700">{s.name}</span>
-                <span className="font-mono font-bold text-slate-500">({s.ownershipPercentage}%)</span>
-              </div>
-            );
-          })}
-          {metrics.availableOwnershipPercentage > 0 && (
-            <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-              <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-              <span>Hospital Treasury ({metrics.availableOwnershipPercentage}%)</span>
+      )}
+
+      {/* Hospital / equity figures (secondary) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl px-4 py-3 border border-slate-100 shadow-xs flex items-center gap-3">
+          <PieChart className="h-4 w-4 text-teal-600 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold text-slate-500 uppercase">Allocated equity</div>
+            <div className="text-sm font-black text-dark">
+              {Number(metrics.totalOwnershipAllocated.toFixed(2))}%{' '}
+              <span className="text-[11px] font-medium text-slate-400">· {Number(metrics.availableOwnershipPercentage.toFixed(2))}% unallocated</span>
             </div>
-          )}
+          </div>
+        </div>
+        <div className="bg-white rounded-xl px-4 py-3 border border-slate-100 shadow-xs flex items-center gap-3">
+          <TrendingUp className="h-4 w-4 text-emerald-600 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold text-slate-500 uppercase">Hospital net profit</div>
+            <div className="text-sm font-black text-emerald-700">
+              {money(metrics.hospitalFinancialSummary.netProfit)}{' '}
+              <span className="text-[11px] font-medium text-slate-400">
+                · Rev {money(metrics.hospitalFinancialSummary.totalIncome)} / Exp {money(metrics.hospitalFinancialSummary.totalExpense)}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl px-4 py-3 border border-slate-100 shadow-xs flex items-center gap-3">
+          <Award className="h-4 w-4 text-purple-600 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold text-slate-500 uppercase">Capital invested (profiles)</div>
+            <div className="text-sm font-black text-purple-900">{money(metrics.totalCapital)}</div>
+          </div>
         </div>
       </div>
 
-      {/* 4. Shareholders Master Table */}
+      {/* Ownership bar (shareholders on this page) */}
+      {list.some((x) => Number(x.ownershipPercentage) > 0) && (
+        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-700">Ownership distribution</span>
+            <span className="text-slate-400 text-[11px]">Shareholders listed below</span>
+          </div>
+          <div className="h-3.5 w-full bg-slate-100 rounded-xl overflow-hidden flex">
+            {list.map((s, idx) => (
+              <div key={s.id} className={`${COLORS[idx % COLORS.length]} h-full`} style={{ width: `${Number(s.ownershipPercentage) || 0}%` }} title={`${s.name}: ${s.ownershipPercentage}%`} />
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {list
+              .filter((s) => Number(s.ownershipPercentage) > 0)
+              .map((s, idx) => (
+                <div key={s.id} className="flex items-center gap-1.5 text-[11px]">
+                  <div className={`h-2.5 w-2.5 rounded-full ${COLORS[idx % COLORS.length]}`} />
+                  <span className="font-semibold text-slate-700">{s.name}</span>
+                  <span className="font-mono font-bold text-slate-500">({Number(s.ownershipPercentage)}%)</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-dark">Board of Shareholders</h3>
-            <p className="text-[11px] text-slate-400">
-              Detailed list with individual ownership % and real-time calculated dividend share
-            </p>
+        <div className="p-4 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="relative">
+            <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search name, phone, email, SH-ID, share no..."
+              className="h-8.5 w-full lg:w-72 pl-8 pr-3 rounded-lg border border-slate-200 text-xs focus:border-teal-500 focus:outline-hidden"
+            />
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-teal-50 text-teal-800 text-xs font-bold border border-teal-200">
-            {shareholdersList.length} Partners
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className={selectCls} value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
+              <option value="">All statuses</option>
+              {SHAREHOLDER_STATUSES.map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            <select className={selectCls} value={planId} onChange={(e) => { setPlanId(e.target.value); setPage(1); }}>
+              <option value="">All plans</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <select className={selectCls} value={paymentStatus} onChange={(e) => { setPaymentStatus(e.target.value); setPage(1); }}>
+              <option value="">Any payment</option>
+              {PAYMENT_STATUSES.filter((s) => s !== 'CANCELLED').map((s) => (
+                <option key={s} value={s}>
+                  {s.charAt(0) + s.slice(1).toLowerCase()}
+                </option>
+              ))}
+            </select>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={() => { setSearchInput(''); setStatus(''); setPlanId(''); setPaymentStatus(''); setPage(1); }}
+                className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 px-2 cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto transition-opacity ${isFetching ? 'opacity-60' : ''}`}>
           <table className="w-full text-left text-xs border-collapse">
             <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4">Shareholder Name</th>
-                <th className="py-3 px-4">Ownership (%)</th>
-                <th className="py-3 px-4">Investment Capital</th>
-                <th className="py-3 px-4">Calculated Profit Share (৳)</th>
-                <th className="py-3 px-4">Bank & Payout A/C</th>
+                <th className="py-3 px-4">Shareholder</th>
+                <th className="py-3 px-4">Shares</th>
+                <th className="py-3 px-4">Payment</th>
+                <th className="py-3 px-4">Ownership</th>
+                <th className="py-3 px-4">Login</th>
                 <th className="py-3 px-4 text-center">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {shareholdersList.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50 transition">
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-dark">{s.name}</div>
-                    <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span className="flex items-center gap-1 font-mono">
-                        <Phone className="h-2.5 w-2.5 text-teal-600" />
-                        {s.phone}
-                      </span>
-                      {s.email && (
-                        <span>• {s.email}</span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <span className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-200 font-extrabold text-xs">
-                      {s.ownershipPercentage}%
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4 whitespace-nowrap font-bold text-slate-700">
-                    ৳{Number(s.investmentAmount || 0).toLocaleString()}
-                  </td>
-
-                  <td className="py-3 px-4 whitespace-nowrap">
-                    <div className="font-extrabold text-emerald-700 text-sm">
-                      ৳{Number(s.calculatedEarning || 0).toLocaleString()}
-                    </div>
-                    <span className="text-[10px] text-slate-400">
-                      Based on Net Profit: ৳{metrics.hospitalFinancialSummary.netProfit.toLocaleString()}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4 max-w-xs text-[11px] text-slate-600 truncate">
-                    {s.bankAccountDetails || 'N/A'}
-                  </td>
-
-                  <td className="py-3 px-4 text-center whitespace-nowrap">
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      {s.status}
-                    </span>
-                  </td>
-
-                  <td className="py-3 px-4 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => setViewOnlyShareholder(s)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer"
-                        title="Simulate Read-Only Shareholder Portal (Section 4.7)"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(s)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
-                        title="Edit Details"
-                      >
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(s.id, s.name)}
-                        className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
-                        title="Remove Partner"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
+              {isLoading && (
+                <tr>
+                  <td colSpan={7} className="py-10 text-center text-slate-400">Loading shareholders...</td>
+                </tr>
+              )}
+              {!isLoading && list.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    {hasFilters ? 'No shareholder matches these filters.' : 'No shareholders yet. Click "Add Shareholder".'}
                   </td>
                 </tr>
-              ))}
+              )}
+              {list.map((s) => {
+                const ps = s.purchaseSummary;
+                return (
+                  <tr key={s.id} className="hover:bg-slate-50 transition align-top">
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2.5">
+                        {s.photo ? (
+                          <img src={s.photo} alt="" className="h-9 w-9 rounded-full object-cover border border-slate-200 shrink-0" />
+                        ) : (
+                          <div className="h-9 w-9 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+                            <User className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-bold text-dark">{s.name}</div>
+                          <div className="font-mono text-[10px] font-semibold text-slate-400">{s.shareholderCode}</div>
+                          <div className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
+                            <Phone className="h-2.5 w-2.5 text-teal-600" /> {s.phone}
+                            {s.nid && <span className="ml-1">• ID {s.nid}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      {ps?.purchaseCount ? (
+                        <>
+                          <div className="font-semibold text-slate-800">
+                            {ps.purchaseCount} share{ps.purchaseCount > 1 ? 's' : ''}
+                            <span className="font-normal text-slate-400"> · {ps.planNames.join(', ')}</span>
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            {ps.shareNumbers.slice(0, 3).join(', ')}
+                            {ps.shareNumbers.length > 3 ? ` +${ps.shareNumbers.length - 3}` : ''}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      {ps?.purchaseCount ? (
+                        <>
+                          <div className="font-mono text-emerald-700 font-semibold">{money(ps.paidAmount)} paid</div>
+                          <div className={`font-mono text-[11px] ${ps.dueAmount > 0 ? 'text-amber-700 font-semibold' : 'text-slate-400'}`}>
+                            {ps.dueAmount > 0 ? `${money(ps.dueAmount)} due` : 'No due'}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 font-extrabold">{Number(s.ownershipPercentage)}%</span>
+                      <div className="text-[10px] text-slate-400 mt-1">Profit share {money(s.calculatedEarning)}</div>
+                    </td>
+                    <td className="py-3 px-4 text-[11px]">
+                      {s.account ? (
+                        <div className="space-y-1">
+                          <div className="font-mono text-slate-700 truncate max-w-[170px]" title={s.account.email}>{s.account.email}</div>
+                          <div className="flex items-center gap-1">
+                            <span className={`px-1.5 py-px rounded text-[10px] font-bold ${s.account.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-700'}`}>
+                              {s.account.isActive ? 'Active' : 'Disabled'}
+                            </span>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => setAccountModal({ s, mode: 'reset' })}
+                                  className="px-1.5 py-px rounded border border-indigo-200 text-indigo-700 hover:bg-indigo-50 text-[10px] font-semibold whitespace-nowrap cursor-pointer"
+                                >
+                                  Reset password
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAccess(s)}
+                                  title={s.account.isActive ? 'Disable login' : 'Enable login'}
+                                  className={`p-0.5 rounded cursor-pointer ${s.account.isActive ? 'text-slate-400 hover:text-rose-600' : 'text-emerald-600 hover:text-emerald-700'}`}
+                                >
+                                  <Power className="h-3 w-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ) : isAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => setAccountModal({ s, mode: 'create' })}
+                          className="px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <KeyRound className="h-3 w-3" /> Create login
+                        </button>
+                      ) : (
+                        <span className="text-slate-300">No login</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {isAdmin ? (
+                        <select
+                          value={s.status}
+                          onChange={(e) => handleStatus(s, e.target.value)}
+                          className={`px-2 py-1 rounded-full text-[10px] font-bold border-0 cursor-pointer focus:outline-hidden ${STATUS_STYLE[s.status] || 'bg-slate-100'}`}
+                        >
+                          {SHAREHOLDER_STATUSES.map((st) => (
+                            <option key={st}>{st}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${STATUS_STYLE[s.status] || 'bg-slate-100'}`}>{s.status}</span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setDetailsId(s.id)}
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-teal-700 hover:bg-teal-50 transition cursor-pointer"
+                          title="Full details / Print"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                        </button>
+                        {isAdmin && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/shareholders/edit/${s.id}`)}
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
+                              title="Edit"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(s)}
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
+                              title="Remove"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+
+        {pagination && pagination.totalPages > 1 && (
+          <div className="border-t border-slate-100 px-4 py-3">
+            <Pagination
+              currentPage={pagination.page}
+              totalPages={pagination.totalPages}
+              totalItems={pagination.total}
+              itemsPerPage={pagination.limit}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
 
-      {/* 5. ADD / EDIT MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
-            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-dark">
-                {editingShareholder ? 'Edit Shareholder' : 'Add New Hospital Shareholder'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-5 space-y-3.5 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Alhaj Mobarok Hossain"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:border-teal-500 focus:outline-hidden"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Phone Number *</label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="017xxxxxxxx"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono font-medium focus:border-teal-500 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="partner@hospital.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:border-teal-500 focus:outline-hidden"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">National ID (NID)</label>
-                  <input
-                    type="text"
-                    placeholder="19xxxxxxxxxxxx"
-                    value={nid}
-                    onChange={(e) => setNid(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-mono font-medium focus:border-teal-500 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Ownership Share (%) *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    placeholder="e.g. 15"
-                    value={ownershipPercentage}
-                    onChange={(e) => setOwnershipPercentage(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-teal-300 bg-teal-50 text-xs font-extrabold text-teal-800 focus:outline-hidden"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Capital Invested (৳)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 2000000"
-                    value={investmentAmount}
-                    onChange={(e) => setInvestmentAmount(e.target.value)}
-                    className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-800 focus:outline-hidden"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Bank & Routing Details for Dividend Payout</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Islami Bank, Gulshan Branch, A/C: 2050123456"
-                  value={bankAccountDetails}
-                  onChange={(e) => setBankAccountDetails(e.target.value)}
-                  className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:outline-hidden"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Internal Notes / Role</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Director, Founding Partner"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full h-8.5 px-3 rounded-lg border border-slate-200 bg-white text-xs font-medium focus:outline-hidden"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isCreating || isUpdating}
-                  className="px-4 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold cursor-pointer transition shadow-xs"
-                >
-                  {editingShareholder ? 'Save Changes' : 'Register Partner'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {accountModal && (
+        <ShareholderAccountModal shareholder={accountModal.s} mode={accountModal.mode} onClose={() => setAccountModal(null)} />
       )}
-
-      {/* 6. STRICTLY READ-ONLY SHAREHOLDER PORTAL (Section 4.7 Requirement) */}
-      {viewOnlyShareholder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="p-4 bg-gradient-to-r from-teal-800 to-teal-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Lock className="h-4 w-4 text-teal-300" />
-                <div>
-                  <h3 className="text-sm font-bold">Shareholder Statement (Read-Only Mode)</h3>
-                  <p className="text-[10px] text-teal-200">As specified in Section 4.7 of proposal</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setViewOnlyShareholder(null)}
-                className="p-1 rounded-lg hover:bg-white/10 text-white cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Partner Details */}
-            <div className="p-5 space-y-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-teal-700 uppercase">Partner Name</span>
-                  <div className="text-base font-black text-dark">{viewOnlyShareholder.name}</div>
-                  <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                    Phone: {viewOnlyShareholder.phone} • NID: {viewOnlyShareholder.nid || 'N/A'}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-bold text-teal-700 uppercase">Equity Share</span>
-                  <div className="text-2xl font-black text-teal-800">
-                    {viewOnlyShareholder.ownershipPercentage}%
-                  </div>
-                </div>
-              </div>
-
-              {/* Calculated Earnings Card */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
-                  <span className="text-[10px] text-slate-500 font-semibold uppercase">Hospital Net Profit</span>
-                  <div className="text-lg font-black text-dark">
-                    ৳{metrics.hospitalFinancialSummary.netProfit.toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-slate-400">Total hospital operational gain</span>
-                </div>
-                <div className="p-3 rounded-xl border border-emerald-200 bg-emerald-50 space-y-1">
-                  <span className="text-[10px] text-emerald-800 font-bold uppercase">Your Dividend Share</span>
-                  <div className="text-xl font-black text-emerald-800">
-                    ৳{Number(viewOnlyShareholder.calculatedEarning || 0).toLocaleString()}
-                  </div>
-                  <span className="text-[10px] text-emerald-700 font-medium">
-                    Calculated at {viewOnlyShareholder.ownershipPercentage}% rate
-                  </span>
-                </div>
-              </div>
-
-              {/* Bank Payout Info */}
-              <div className="p-3 rounded-xl border border-slate-200 space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase">Dividend Deposit Account</span>
-                <p className="font-semibold text-slate-800">
-                  {viewOnlyShareholder.bankAccountDetails || 'No bank account details provided'}
-                </p>
-              </div>
-
-              {/* Read Only Disclaimer */}
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] flex items-center gap-2">
-                <ShieldAlert className="h-4 w-4 shrink-0 text-amber-600" />
-                <span>
-                  <strong>Read-Only Notice:</strong> In accordance with hospital governance rules, shareholders
-                  have viewing permission for audit verification only. Changes must be requested via the Board Admin.
-                </span>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setViewOnlyShareholder(null)}
-                className="px-4 py-1.5 rounded-lg bg-slate-800 text-white font-bold text-xs cursor-pointer hover:bg-slate-900 transition"
-              >
-                Close Statement
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {detailsId && <ShareholderDetailsModal shareholderId={detailsId} isAdmin={isAdmin} onClose={() => setDetailsId(null)} />}
     </div>
   );
 };
 
 export default ShareholdersPage;
-

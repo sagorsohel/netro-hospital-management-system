@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAppSelector } from './store/hooks';
 import { LoginPage } from './pages/auth/LoginPage';
 import { HospitalLayout } from './components/hospital/HospitalLayout';
@@ -21,12 +21,22 @@ import { DiagnosticInvoicesPage } from './pages/tests/DiagnosticInvoicesPage';
 import { LabWorkstationPage } from './pages/tests/LabWorkstationPage';
 import { DoctorSerialsPage } from './pages/serials/DoctorSerialsPage';
 import { ShareholdersPage } from './pages/shareholders/ShareholdersPage';
+import { ShareholderFormPage } from './pages/shareholders/ShareholderFormPage';
+import { SharePlansPage } from './pages/shareholders/SharePlansPage';
+import { MySharesPage } from './pages/shareholders/MySharesPage';
+import { homePathForRole, isPathAllowedForRole } from './lib/roleAccess';
 import { PharmaciesPage } from './pages/pharmacies/PharmaciesPage';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const location = useLocation();
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+  // Restricted roles (e.g. shareholder) are sent back to their allowed pages
+  if (!isPathAllowedForRole(role, location.pathname)) {
+    return <Navigate to={homePathForRole(role)} replace />;
   }
   return <>{children}</>;
 };
@@ -56,6 +66,10 @@ export const App: React.FC = () => {
           <Route path="/tests/lab-workstation" element={<LabWorkstationPage />} />
           <Route path="/tests/invoices" element={<DiagnosticInvoicesPage />} />
           <Route path="/shareholders" element={<ShareholdersPage />} />
+          <Route path="/shareholders/plans" element={<SharePlansPage />} />
+          <Route path="/my-shares" element={<MySharesPage />} />
+          <Route path="/shareholders/new" element={<ShareholderFormPage />} />
+          <Route path="/shareholders/edit/:id" element={<ShareholderFormPage />} />
           <Route path="/pharmacies" element={<PharmaciesPage />} />
           <Route path="/departments" element={<DepartmentPage />} />
           <Route path="/doctors" element={<DoctorsPage />} />

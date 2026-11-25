@@ -59,6 +59,8 @@ export const baseApi = createApi({
     'Admissions',
     'DiagnosticInvoices',
     'Pharmacies',
+    'Shareholders',
+    'SharePlans',
   ],
 
   endpoints: () => ({}),

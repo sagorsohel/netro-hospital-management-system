@@ -23,11 +23,13 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { useLoginMutation } from "../../store/api/authApi";
+import { homePathForRole } from "../../lib/roleAccess";
 
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const authUserRole = useAppSelector((state) => state.auth.user?.role);
   const [loginMutation, { isLoading: isLoginLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState("admin@gmail.com");
@@ -40,7 +42,7 @@ export const LoginPage: React.FC = () => {
 
   // If already authenticated, redirect to /dashboard
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homePathForRole(authUserRole)} replace />;
   }
 
   const performLogin = async (loginEmail: string, loginPass: string) => {
@@ -63,7 +65,7 @@ export const LoginPage: React.FC = () => {
         })
       );
 
-      navigate("/dashboard");
+      navigate(homePathForRole(data.user?.role));
     } catch (err: any) {
       const message =
         err?.data?.message ||

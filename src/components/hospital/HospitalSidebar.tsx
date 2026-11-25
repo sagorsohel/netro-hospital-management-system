@@ -19,6 +19,7 @@ import {
   PieChart,
   Barcode,
   Store,
+  Ticket,
 } from 'lucide-react';
 
 export const HospitalSidebar: React.FC = () => {
@@ -29,7 +30,9 @@ export const HospitalSidebar: React.FC = () => {
   const currentRole = (user?.role || 'admin').toLowerCase();
 
   const allNavItems = [
-    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid, roles: ['admin', 'receptionist', 'lab_technician', 'accountant', 'doctor', 'hr_manager', 'shareholder'] },
+    // Shareholder portal only (exclusive: hidden even for admins)
+    { id: 'my-shares', path: '/my-shares', label: 'My Shares', icon: Ticket, roles: ['shareholder'], exclusive: true },
+    { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: LayoutGrid, roles: ['admin', 'receptionist', 'lab_technician', 'accountant', 'doctor', 'hr_manager'] },
     { id: 'patients', path: '/patients', label: 'Patient Profiles', icon: UserCheck, roles: ['admin', 'receptionist', 'doctor'] },
     { id: 'serials', path: '/serials', label: 'Doctor Serials', icon: CalendarClock, roles: ['admin', 'receptionist', 'doctor'] },
     { id: 'admissions', path: '/admissions', label: 'Inpatient & POS', icon: BedDouble, roles: ['admin', 'receptionist', 'accountant'] },
@@ -37,17 +40,18 @@ export const HospitalSidebar: React.FC = () => {
     { id: 'lab-workstation', path: '/tests/lab-workstation', label: 'Lab Workstation', icon: Barcode, roles: ['admin', 'lab_technician'] },
     { id: 'test-invoices', path: '/tests/invoices', label: 'Diagnostic Invoices', icon: ClipboardList, roles: ['admin', 'receptionist', 'lab_technician', 'accountant'] },
     { id: 'pharmacies', path: '/pharmacies', label: 'Pharmacies', icon: Store, roles: ['admin'] },
-    { id: 'shareholders', path: '/shareholders', label: 'Shareholder Panel', icon: PieChart, roles: ['admin', 'accountant', 'shareholder'] },
+    { id: 'shareholders', path: '/shareholders', label: 'Shareholder Panel', icon: PieChart, roles: ['admin', 'accountant'] },
     { id: 'departments', path: '/departments', label: 'Departments', icon: Building2, roles: ['admin', 'hr_manager'] },
     { id: 'doctors', path: '/doctors', label: 'Doctors', icon: Stethoscope, roles: ['admin', 'receptionist', 'doctor'] },
-    { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'accountant'] },
+    { id: 'expenses', path: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'accountant', 'shareholder'] },
     { id: 'staff', path: '/staff', label: 'Staff & HR', icon: Users, roles: ['admin', 'hr_manager'] },
-    { id: 'equipment', path: '/equipment', label: 'Equipment', icon: Cpu, roles: ['admin', 'hr_manager'] },
+    { id: 'equipment', path: '/equipment', label: 'Equipment', icon: Cpu, roles: ['admin', 'hr_manager', 'shareholder'] },
     { id: 'settings', path: '/settings', label: 'Settings & Rooms', icon: Settings, roles: ['admin'] },
   ];
 
   // Role-based Access Control filtering (Section 4.11)
   const navItems = allNavItems.filter((item) => {
+    if ('exclusive' in item && item.exclusive) return item.roles.includes(currentRole);
     if (currentRole === 'admin' || currentRole === 'super_admin') return true;
     return item.roles.includes(currentRole);
   });

@@ -56,6 +56,12 @@ import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
 import { Pagination } from '../../components/common/Pagination';
 
 export const STAFF_DESIGNATIONS = [
+  'Manager',
+  'Assistant Manager',
+  'Marketing Officer',
+  'Pharmacist',
+  'Medicine Dispenser',
+  'Delivery Man',
   'Senior ICU Nurse',
   'Staff Nurse',
   'Head Nurse / Matron',
@@ -104,6 +110,7 @@ export const StaffPage: React.FC = () => {
 
   // Modals state
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
+  const [isCustomDesignation, setIsCustomDesignation] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [selectedStaffDocs, setSelectedStaffDocs] = useState<Staff | null>(null);
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
@@ -328,6 +335,7 @@ export const StaffPage: React.FC = () => {
   // Open Edit Staff Modal
   const handleEditStaff = (member: Staff) => {
     setEditingStaff(member);
+    setIsCustomDesignation(!STAFF_DESIGNATIONS.includes(member.designation));
     setStaffForm({
       name: member.name,
       designation: member.designation,
@@ -456,6 +464,7 @@ export const StaffPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setEditingStaff(null);
+                setIsCustomDesignation(false);
                 setStaffForm({
                   name: '',
                   designation: STAFF_DESIGNATIONS[0],
@@ -674,6 +683,28 @@ export const StaffPage: React.FC = () => {
                   {departmentsList.map((d) => (
                     <SelectItem key={d.id} value={d.name}>
                       {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="w-full md:w-52 shrink-0">
+              <Select
+                value={designationFilter}
+                onValueChange={(val) => {
+                  setDesignationFilter(val);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="h-10 text-xs bg-slate-50 border-slate-200">
+                  <SelectValue placeholder="All Designations" />
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  <SelectItem value="all">All Designations</SelectItem>
+                  {STAFF_DESIGNATIONS.map((desig) => (
+                    <SelectItem key={desig} value={desig}>
+                      {desig}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1243,22 +1274,59 @@ export const StaffPage: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold">Designation *</Label>
-                  <Select
-                    value={staffForm.designation}
-                    onValueChange={(val) => setStaffForm({ ...staffForm, designation: val })}
-                  >
-                    <SelectTrigger className="h-10 text-xs">
-                      <SelectValue placeholder="Select designation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STAFF_DESIGNATIONS.map((desig) => (
-                        <SelectItem key={desig} value={desig}>
-                          {desig}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">Designation *</Label>
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomDesignation(!isCustomDesignation)}
+                      className="text-[10px] font-semibold text-primary hover:text-primary-hover underline cursor-pointer"
+                    >
+                      {isCustomDesignation ? 'Choose Preset' : '+ Other / Custom'}
+                    </button>
+                  </div>
+                  {isCustomDesignation ? (
+                    <Input
+                      autoFocus
+                      placeholder="e.g. Account Officer, Store Keeper..."
+                      value={staffForm.designation}
+                      onChange={(e) => setStaffForm({ ...staffForm, designation: e.target.value })}
+                      className="h-10 text-xs"
+                      required
+                    />
+                  ) : (
+                    <Select
+                      value={staffForm.designation}
+                      onValueChange={(val) => {
+                        if (val === '__custom__') {
+                          setIsCustomDesignation(true);
+                        } else {
+                          setStaffForm({ ...staffForm, designation: val });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-10 text-xs">
+                        <SelectValue placeholder="Select designation" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-64">
+                        {STAFF_DESIGNATIONS.map((desig) => (
+                          <SelectItem key={desig} value={desig}>
+                            {desig}
+                          </SelectItem>
+                        ))}
+                        {staffForm.designation &&
+                          !STAFF_DESIGNATIONS.includes(staffForm.designation) && (
+                            <SelectItem value={staffForm.designation}>
+                              {staffForm.designation} (Custom)
+                            </SelectItem>
+                          )}
+                        <div className="border-t border-slate-100 my-1 pt-1">
+                          <SelectItem value="__custom__" className="text-primary font-bold">
+                            + Other / Custom Designation...
+                          </SelectItem>
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1270,12 +1338,21 @@ export const StaffPage: React.FC = () => {
                     <SelectTrigger className="h-10 text-xs">
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64">
                       {departmentsList.map((d) => (
                         <SelectItem key={d.id} value={d.name}>
                           {d.name}
                         </SelectItem>
                       ))}
+                      {!departmentsList.some((d) => d.name.toLowerCase().includes('pharmacy')) && (
+                        <SelectItem value="Pharmacy & Dispensary">Pharmacy & Dispensary</SelectItem>
+                      )}
+                      {!departmentsList.some((d) => d.name.toLowerCase().includes('marketing')) && (
+                        <SelectItem value="Marketing & Public Relations">Marketing & Public Relations</SelectItem>
+                      )}
+                      {!departmentsList.some((d) => d.name.toLowerCase().includes('admin')) && (
+                        <SelectItem value="General Administration">General Administration</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

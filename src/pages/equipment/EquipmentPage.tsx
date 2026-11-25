@@ -18,6 +18,14 @@ import {
   FileText,
   ShieldCheck,
   Zap,
+  Upload,
+  Image as ImageIcon,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  Loader2,
+  Camera,
 } from 'lucide-react';
 import {
   useGetEquipmentQuery,
@@ -27,6 +35,7 @@ import {
   useDeleteEquipmentMutation,
   useGetMaintenanceLogsQuery,
   useCreateMaintenanceLogMutation,
+  useUploadEquipmentImageMutation,
   type Equipment,
   type MaintenanceLog,
 } from '../../store/api/equipmentApi';
@@ -114,26 +123,56 @@ export const EquipmentPage: React.FC = () => {
   const [updateEquipment, { isLoading: isUpdating }] = useUpdateEquipmentMutation();
   const [deleteEquipment, { isLoading: isDeleting }] = useDeleteEquipmentMutation();
   const [createMaintenanceLog, { isLoading: isLogging }] = useCreateMaintenanceLogMutation();
+  const [uploadEquipmentImage, { isLoading: isUploadingImage }] = useUploadEquipmentImageMutation();
+
+  // Photo viewer modal state
+  const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
+  const [viewerImages, setViewerImages] = useState<string[]>([]);
+  const [activeViewerIndex, setActiveViewerIndex] = useState(0);
+  const [viewerEquipmentName, setViewerEquipmentName] = useState('');
+  const [uploadError, setUploadError] = useState('');
 
   // Form states
-  const [equipForm, setEquipForm] = useState({
+  const [equipForm, setEquipForm] = useState<{
+    name: string;
+    modelNo: string;
+    serialNumber: string;
+    category: string;
+    quantity: number;
+    price: string;
+    roomNumber: string;
+    floor: string;
+    department: string;
+    manufacturer: string;
+    purchaseDate: string;
+    warrantyExpiry: string;
+    status: 'Functional' | 'Under Maintenance' | 'Non-functional';
+    lastServiceDate: string;
+    nextServiceDate: string;
+    serviceNotes: string;
+    technicianContact: string;
+    photo: string;
+    images: string[];
+  }>({
     name: '',
     modelNo: '',
     serialNumber: '',
     category: EQUIPMENT_CATEGORIES[0],
     quantity: 1,
+    price: '',
     roomNumber: 'Room 101',
     floor: '1st Floor',
     department: '',
     manufacturer: '',
     purchaseDate: '',
     warrantyExpiry: '',
-    status: 'Functional' as 'Functional' | 'Under Maintenance' | 'Non-functional',
+    status: 'Functional',
     lastServiceDate: '',
     nextServiceDate: '',
     serviceNotes: '',
     technicianContact: '',
     photo: '',
+    images: [],
   });
 
   const [logForm, setLogForm] = useState({
@@ -147,15 +186,99 @@ export const EquipmentPage: React.FC = () => {
     nextScheduledDate: '',
   });
 
+  // Multiple Image Upload Handler
+  const handleMultipleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadError('');
+    const newUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > 8 * 1024 * 1024) {
+        setUploadError(`File ${file.name} is too large (max 8MB).`);
+        continue;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('image', file);
+      formData.append('folder', 'netro-hospital/equipment');
+
+      try {
+        const res = await uploadEquipmentImage(formData).unwrap();
+        if (res.success && res.url) {
+          newUrls.push(res.url);
+        }
+      } catch (err: any) {
+        console.error('Failed to upload image:', err);
+        setUploadError(err?.data?.message || err?.message || 'Error uploading some images.');
+      }
+    }
+
+    if (newUrls.length > 0) {
+      setEquipForm((prev) => {
+        const updatedImages = [...prev.images, ...newUrls];
+        return {
+          ...prev,
+          images: updatedImages,
+          photo: prev.photo || updatedImages[0] || '',
+        };
+      });
+    }
+
+    e.target.value = '';
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setEquipForm((prev) => {
+      const updatedImages = prev.images.filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        images: updatedImages,
+        photo: updatedImages[0] || '',
+      };
+    });
+  };
+
+  const handleSetPrimaryImage = (index: number) => {
+    setEquipForm((prev) => {
+      const target = prev.images[index];
+      if (!target) return prev;
+      const reordered = [target, ...prev.images.filter((_, idx) => idx !== index)];
+      return {
+        ...prev,
+        images: reordered,
+        photo: target,
+      };
+    });
+  };
+
+  const handleOpenPhotoViewer = (equipmentName: string, images: string[], startIndex: number = 0) => {
+    if (!images || images.length === 0) return;
+    setViewerEquipmentName(equipmentName);
+    setViewerImages(images);
+    setActiveViewerIndex(startIndex);
+    setIsPhotoViewerOpen(true);
+  };
+
   // Open Edit Equipment Modal
   const handleEdit = (item: Equipment) => {
     setEditingEquip(item);
+    const itemImages = Array.isArray(item.images) && item.images.length > 0
+      ? item.images
+      : item.photo
+      ? [item.photo]
+      : [];
+
     setEquipForm({
       name: item.name,
       modelNo: item.modelNo || '',
       serialNumber: item.serialNumber || '',
       category: item.category,
       quantity: item.quantity || 1,
+      price: item.price !== undefined && item.price !== null ? String(item.price) : '',
       roomNumber: item.roomNumber || '',
       floor: item.floor || '',
       department: item.department,
@@ -167,8 +290,10 @@ export const EquipmentPage: React.FC = () => {
       nextServiceDate: item.nextServiceDate || '',
       serviceNotes: item.serviceNotes || '',
       technicianContact: item.technicianContact || '',
-      photo: item.photo || '',
+      photo: item.photo || (itemImages[0] || ''),
+      images: itemImages,
     });
+    setUploadError('');
     setIsEquipModalOpen(true);
   };
 
@@ -197,10 +322,17 @@ export const EquipmentPage: React.FC = () => {
     }
 
     try {
+      const payload = {
+        ...equipForm,
+        price: equipForm.price ? String(equipForm.price) : '0.00',
+        images: equipForm.images,
+        photo: equipForm.images[0] || equipForm.photo || '',
+      };
+
       if (editingEquip) {
-        await updateEquipment({ id: editingEquip.id, data: equipForm }).unwrap();
+        await updateEquipment({ id: editingEquip.id, data: payload }).unwrap();
       } else {
-        await createEquipment(equipForm).unwrap();
+        await createEquipment(payload).unwrap();
       }
       setIsEquipModalOpen(false);
       setEditingEquip(null);
@@ -272,6 +404,7 @@ export const EquipmentPage: React.FC = () => {
                 serialNumber: '',
                 category: EQUIPMENT_CATEGORIES[0],
                 quantity: 1,
+                price: '',
                 roomNumber: 'OT Complex Room 1',
                 floor: '2nd Floor',
                 department: departmentsList[0]?.name || 'Cardiology & ICU',
@@ -284,7 +417,9 @@ export const EquipmentPage: React.FC = () => {
                 serviceNotes: '',
                 technicianContact: '+880 1711-XXXXXX',
                 photo: '',
+                images: [],
               });
+              setUploadError('');
               setIsEquipModalOpen(true);
             }}
             className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
@@ -480,58 +615,139 @@ export const EquipmentPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {equipmentList.map((item) => (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200">
-                          {item.category}
-                        </span>
-                        <h4 className="text-sm font-bold text-dark mt-1 group-hover:text-primary transition-colors">
-                          {item.name}
-                        </h4>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          {item.manufacturer || 'Hospital Asset'} {item.modelNo ? `• ${item.modelNo}` : ''}
-                        </p>
-                      </div>
+              {equipmentList.map((item) => {
+                const cardImages = Array.isArray(item.images) && item.images.length > 0
+                  ? item.images
+                  : item.photo
+                  ? [item.photo]
+                  : [];
 
-                      {/* Status Badges */}
-                      <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
-                          item.status === 'Functional'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : item.status === 'Under Maintenance'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-red-50 text-accent border border-red-200'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </div>
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl p-5 border border-slate-100/90 shadow-xs hover:border-primary/40 hover:shadow-md transition-all flex flex-col justify-between space-y-3 group"
+                  >
+                    <div className="space-y-3">
+                      {/* Multiple Photos / Primary Image Banner */}
+                      {cardImages.length > 0 ? (
+                        <div className="relative rounded-xl overflow-hidden bg-slate-100 group/img border border-slate-200/80">
+                          <img
+                            src={cardImages[0]}
+                            alt={item.name}
+                            className="w-full h-40 object-cover group-hover/img:scale-105 transition-transform duration-300 cursor-pointer"
+                            onClick={() => handleOpenPhotoViewer(item.name, cardImages, 0)}
+                          />
+                          {/* Photos count badge */}
+                          <div className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-semibold">
+                            <Camera className="h-3 w-3 text-emerald-400" />
+                            <span>{cardImages.length} {cardImages.length === 1 ? 'Photo' : 'Photos'}</span>
+                          </div>
 
-                    {/* Location, Floor, Room */}
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">Location:</span>
-                        <span className="font-semibold text-dark">
-                          {item.roomNumber || 'Room N/A'}, {item.floor || 'Ground'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">Department:</span>
-                        <span className="font-medium text-slate-700">{item.department}</span>
-                      </div>
-                      {item.serialNumber && (
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400">Serial No:</span>
-                          <span className="font-mono text-[10px] text-slate-700 font-bold">{item.serialNumber}</span>
+                          {/* Quick view button */}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPhotoViewer(item.name, cardImages, 0)}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 hover:bg-white text-slate-800 shadow-xs opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer"
+                            title="View Fullscreen"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+
+                          {/* Multiple photos thumbnail row if > 1 */}
+                          {cardImages.length > 1 && (
+                            <div className="absolute bottom-2 left-2 flex items-center gap-1">
+                              {cardImages.slice(1, 4).map((thumb, tIdx) => (
+                                <img
+                                  key={tIdx}
+                                  src={thumb}
+                                  alt="thumbnail"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenPhotoViewer(item.name, cardImages, tIdx + 1);
+                                  }}
+                                  className="h-6 w-6 rounded-md object-cover border-2 border-white shadow-xs cursor-pointer hover:scale-110 transition-transform"
+                                />
+                              ))}
+                              {cardImages.length > 4 && (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenPhotoViewer(item.name, cardImages, 0);
+                                  }}
+                                  className="h-6 px-1.5 rounded-md bg-slate-900/80 text-white text-[9px] font-bold flex items-center justify-center cursor-pointer border border-white"
+                                >
+                                  +{cardImages.length - 4}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="h-24 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400">
+                          <ImageIcon className="h-5 w-5 opacity-40" />
+                          <span className="text-[10px]">No photos uploaded</span>
                         </div>
                       )}
-                    </div>
+
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-semibold border border-slate-200">
+                            {item.category}
+                          </span>
+                          <h4 className="text-sm font-bold text-dark mt-1 group-hover:text-primary transition-colors">
+                            {item.name}
+                          </h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            {item.manufacturer || 'Hospital Asset'} {item.modelNo ? `• ${item.modelNo}` : ''}
+                          </p>
+                        </div>
+
+                        {/* Status Badges */}
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold shrink-0 ${
+                            item.status === 'Functional'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : item.status === 'Under Maintenance'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-red-50 text-accent border border-red-200'
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+
+                      {/* Location, Floor, Room & Price */}
+                      <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1.5">
+                        {/* Price / Asset Value */}
+                        <div className="flex items-center justify-between text-[11px] pb-1 border-b border-slate-200/60">
+                          <span className="text-slate-500 font-medium flex items-center gap-1">
+                            <DollarSign className="h-3 w-3 text-emerald-600" />
+                            Purchase Price / Value:
+                          </span>
+                          <span className="font-bold font-mono text-emerald-700 text-xs">
+                            {item.price !== undefined && item.price !== null && Number(item.price) > 0
+                              ? `৳ ${Number(item.price).toLocaleString()}`
+                              : 'Not Specified'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">Location:</span>
+                          <span className="font-semibold text-dark">
+                            {item.roomNumber || 'Room N/A'}, {item.floor || 'Ground'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">Department:</span>
+                          <span className="font-medium text-slate-700">{item.department}</span>
+                        </div>
+                        {item.serialNumber && (
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400">Serial No:</span>
+                            <span className="font-mono text-[10px] text-slate-700 font-bold">{item.serialNumber}</span>
+                          </div>
+                        )}
+                      </div>
 
                     {/* Maintenance Date Trackers */}
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -593,7 +809,8 @@ export const EquipmentPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
 
@@ -798,6 +1015,124 @@ export const EquipmentPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Quantity and Price */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Quantity *</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={equipForm.quantity}
+                    onChange={(e) => setEquipForm({ ...equipForm, quantity: parseInt(e.target.value) || 1 })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold flex items-center gap-1 text-slate-700">
+                    <DollarSign className="h-3.5 w-3.5 text-emerald-600" />
+                    Purchase Price / Asset Value (৳)
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 350000"
+                    value={equipForm.price}
+                    onChange={(e) => setEquipForm({ ...equipForm, price: e.target.value })}
+                    className="font-mono font-medium text-dark"
+                  />
+                </div>
+              </div>
+
+              {/* Equipment Pictures (Multiple Images Upload) */}
+              <div className="space-y-2 p-3 bg-slate-50/80 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5 text-slate-800">
+                    <ImageIcon className="h-4 w-4 text-primary" />
+                    Equipment Pictures (Multiple Upload Supported)
+                  </Label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {equipForm.images.length} {equipForm.images.length === 1 ? 'picture' : 'pictures'} attached
+                  </span>
+                </div>
+
+                {uploadError && (
+                  <p className="text-[11px] text-red-600 font-medium">{uploadError}</p>
+                )}
+
+                {/* Upload Trigger Area */}
+                <label className="border-2 border-dashed border-slate-300 hover:border-primary rounded-xl p-3 flex flex-col items-center justify-center gap-1 cursor-pointer bg-white transition-colors group">
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleMultipleImageUpload}
+                    disabled={isUploadingImage}
+                    className="hidden"
+                  />
+                  {isUploadingImage ? (
+                    <div className="flex items-center gap-2 text-xs text-primary font-medium py-1.5">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Uploading pictures to cloud storage...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="h-8 w-8 rounded-lg bg-emerald-50 group-hover:bg-emerald-100 text-primary flex items-center justify-center transition-colors">
+                        <Upload className="h-4 w-4" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-700 group-hover:text-primary">
+                        Click to select & upload multiple photos
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Supports selecting multiple JPG, PNG, WEBP files (Max 8MB each)
+                      </span>
+                    </>
+                  )}
+                </label>
+
+                {/* Uploaded Images Preview Thumbnails */}
+                {equipForm.images.length > 0 && (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 pt-1">
+                    {equipForm.images.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        className="relative group/thumb rounded-lg overflow-hidden border border-slate-200 aspect-square bg-slate-100"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Equipment preview ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Remove Image Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute top-1 right-1 p-0.5 rounded-full bg-red-600 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-700 cursor-pointer shadow-xs"
+                          title="Remove picture"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                        {/* Primary Badge */}
+                        {idx === 0 ? (
+                          <span className="absolute bottom-1 left-1 px-1 py-0.2 rounded bg-emerald-600 text-white text-[9px] font-bold">
+                            Primary
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleSetPrimaryImage(idx)}
+                            className="absolute bottom-1 left-1 px-1 py-0.2 rounded bg-slate-900/80 text-white text-[9px] font-medium opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-slate-900 cursor-pointer"
+                            title="Set as primary"
+                          >
+                            Set Main
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs font-semibold">Manufacturer / Vendor</Label>
@@ -975,6 +1310,88 @@ export const EquipmentPage: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: PHOTO VIEWER LIGHTBOX */}
+      {isPhotoViewerOpen && viewerImages.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative max-w-4xl w-full flex flex-col items-center justify-center">
+            {/* Header / Info bar */}
+            <div className="w-full flex items-center justify-between text-white pb-3 px-2">
+              <div>
+                <h3 className="text-sm font-bold text-white">{viewerEquipmentName}</h3>
+                <p className="text-xs text-slate-400">
+                  Photo {activeViewerIndex + 1} of {viewerImages.length}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPhotoViewerOpen(false)}
+                className="h-9 w-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Main Active Image Display */}
+            <div className="relative w-full max-h-[70vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black/40">
+              <img
+                src={viewerImages[activeViewerIndex]}
+                alt={`${viewerEquipmentName} photo ${activeViewerIndex + 1}`}
+                className="max-h-[68vh] max-w-full object-contain rounded-xl shadow-2xl"
+              />
+
+              {/* Prev button */}
+              {viewerImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveViewerIndex((prev) =>
+                      prev === 0 ? viewerImages.length - 1 : prev - 1
+                    )
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+              )}
+
+              {/* Next button */}
+              {viewerImages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveViewerIndex((prev) =>
+                      prev === viewerImages.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center cursor-pointer transition-colors"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
+              )}
+            </div>
+
+            {/* Thumbnails strip below */}
+            {viewerImages.length > 1 && (
+              <div className="flex items-center gap-2 pt-4 max-w-full overflow-x-auto px-2">
+                {viewerImages.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`Thumbnail ${idx + 1}`}
+                    onClick={() => setActiveViewerIndex(idx)}
+                    className={`h-14 w-14 object-cover rounded-lg cursor-pointer transition-all border-2 shrink-0 ${
+                      activeViewerIndex === idx
+                        ? 'border-emerald-500 scale-105'
+                        : 'border-transparent opacity-60 hover:opacity-100'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ export interface Equipment {
   serialNumber?: string;
   category: string;
   quantity: number;
+  price?: number | string;
   roomNumber?: string;
   floor?: string;
   department: string;
@@ -19,6 +20,7 @@ export interface Equipment {
   serviceNotes?: string;
   technicianContact?: string;
   photo?: string;
+  images?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -142,6 +144,17 @@ export const equipmentApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Maintenance', 'Equipment'],
     }),
+
+    uploadEquipmentImage: builder.mutation<
+      { success: boolean; url: string; name?: string; size?: number; message?: string },
+      FormData
+    >({
+      query: (formData) => ({
+        url: '/upload/image',
+        method: 'POST',
+        body: formData,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -155,4 +168,5 @@ export const {
   useDeleteEquipmentMutation,
   useGetMaintenanceLogsQuery,
   useCreateMaintenanceLogMutation,
+  useUploadEquipmentImageMutation,
 } = equipmentApi;

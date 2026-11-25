@@ -184,7 +184,7 @@ const getInitialMockSerials = (): DoctorSerial[] => {
     },
     {
       id: 'srl-005',
-      tokenNo: `SRL-${today.replace(/-/g, '')}-001`,
+      tokenNo: `SRL-${today.replace(/-/g, '')}-005`,
       serialNumber: 1,
       doctorId: 'doc-2',
       doctorName: 'Dr. Mahbubur Rahman',
@@ -227,10 +227,65 @@ export const getStoredSerials = (): DoctorSerial[] => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
     }
-    return parsed;
+    return ensureUniqueTokens(parsed);
   } catch {
     return getInitialMockSerials();
   }
+};
+
+/** Older data used per-doctor token numbers, so two doctors could share one token. Re-issue duplicates once. */
+const ensureUniqueTokens = (list: DoctorSerial[]): DoctorSerial[] => {
+  const seen = new Set<string>();
+  let changed = false;
+  const fixed = list.map((s) => {
+    if (!seen.has(s.tokenNo)) {
+      seen.add(s.tokenNo);
+      return s;
+    }
+    changed = true;
+    const tokenNo = nextDailyToken(s.appointmentDate, [...seen]);
+    seen.add(tokenNo);
+    return { ...s, tokenNo };
+  });
+  if (changed) saveStoredSerials(fixed);
+  return fixed;
+};
+
+/** Hospital-wide token for a date: SRL-YYYYMMDD-NNNN (unique across all doctors, used as the barcode). */
+const nextDailyToken = (date: string, existingTokens: string[]): string => {
+  const prefix = `SRL-${date.replace(/[^0-9]/g, '')}-`;
+  const maxSeq = existingTokens
+    .filter((t) => t.startsWith(prefix))
+    .reduce((max, t) => Math.max(max, parseInt(t.slice(prefix.length), 10) || 0), 0);
+  return `${prefix}${String(maxSeq + 1).padStart(4, '0')}`;
+};
+
+const normalizePhone = (phone?: string) => (phone || '').replace(/[^0-9]/g, '').slice(-11);
+
+/**
+ * One patient = one doctor per day. Returns the patient's active (not cancelled) booking
+ * for that date, if any. Matched by patient ID, or by same phone + same name.
+ */
+export const findActiveBookingForPatient = (
+  list: DoctorSerial[],
+  date: string,
+  patient: { patientId?: string; patientName: string; patientPhone: string }
+): DoctorSerial | undefined => {
+  const pid = (patient.patientId || '').trim().toLowerCase();
+  const phone = normalizePhone(patient.patientPhone);
+  const name = patient.patientName.trim().toLowerCase();
+  return list.find((s) => {
+    if (s.appointmentDate !== date || s.status === 'Cancelled') return false;
+    if (pid && (s.patientId || '').toLowerCase() === pid) return true;
+    return !!phone && normalizePhone(s.patientPhone) === phone && s.patientName.trim().toLowerCase() === name;
+  });
+};
+
+/** Look up a serial from a scanned barcode / typed token (works across all dates). */
+export const findSerialByBarcode = (code: string): DoctorSerial | undefined => {
+  const q = code.trim().toUpperCase();
+  if (!q) return undefined;
+  return getStoredSerials().find((s) => s.tokenNo.toUpperCase() === q || s.id.toUpperCase() === q);
 };
 
 export const saveStoredSerials = (list: DoctorSerial[]): void => {
@@ -347,8 +402,24 @@ export const serialApi = baseApi.injectEndpoints({
         const maxSerial = forSameDocDate.reduce((max, s) => Math.max(max, s.serialNumber || 0), 0);
         const assignedSerial = maxSerial + 1;
 
-        const dateClean = date.replace(/[^0-9]/g, '');
-        const tokenNo = `SRL-${dateClean}-${String(assignedSerial).padStart(3, '0')}`;
+        // Rule: a patient can be booked with only ONE doctor per day
+        const existing = findActiveBookingForPatient(stored, date, payload);
+        if (existing) {
+          const sameDoctor = existing.doctorId === payload.doctorId;
+          return {
+            error: {
+              status: 409,
+              data: {
+                message: sameDoctor
+                  ? `${existing.patientName} already has Serial #${existing.serialNumber} with ${existing.doctorName} on ${date} (Token ${existing.tokenNo}).`
+                  : `${existing.patientName} is already booked with ${existing.doctorName} on ${date} (Serial #${existing.serialNumber}, Token ${existing.tokenNo}). A patient cannot be added to another doctor on the same day — cancel that serial first.`,
+                existing,
+              },
+            },
+          };
+        }
+
+        const tokenNo = nextDailyToken(date, stored.map((s) => s.tokenNo));
         const newId = `srl-${Date.now()}`;
 
         // Compute estimated time based on default 5:00 PM start + 15 mins per patient

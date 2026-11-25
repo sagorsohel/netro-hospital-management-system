@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import { HospitalSidebar } from "./HospitalSidebar";
 import { HospitalHeader } from "./HospitalHeader";
+import { GlobalBarcodeScanner } from "../serials/GlobalBarcodeScanner";
 
 export const HospitalLayout: React.FC = () => {
   return (
@@ -24,6 +25,9 @@ export const HospitalLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Barcode scanner: scan any serial token slip on any page to open it */}
+      <GlobalBarcodeScanner />
     </div>
   );
 };

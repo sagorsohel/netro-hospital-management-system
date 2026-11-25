@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { DoctorSerial } from '../../store/api/serialApi';
+import { barcodeSvg } from '../../lib/barcode';
 
 interface DoctorSerialSlipModalProps {
   isOpen: boolean;
@@ -154,6 +155,19 @@ export const DoctorSerialSlipModal: React.FC<DoctorSerialSlipModalProps> = ({
             gap: 12px;
             font-weight: 500;
           }
+          .barcode-box {
+            text-align: center;
+            margin: -4px 0 12px 0;
+          }
+          .barcode-box svg {
+            max-width: 100%;
+            height: auto;
+          }
+          .barcode-hint {
+            font-size: 9px;
+            color: #64748b;
+            margin-top: 2px;
+          }
           .grid-two {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -276,6 +290,12 @@ export const DoctorSerialSlipModal: React.FC<DoctorSerialSlipModalProps> = ({
               <span>•</span>
               <span>Est. Time: <strong>${serial.estimatedTime}</strong></span>
             </div>
+          </div>
+
+          <!-- Scannable Barcode -->
+          <div class="barcode-box">
+            ${barcodeSvg(serial.tokenNo, { height: 46, moduleWidth: 1.5 })}
+            <div class="barcode-hint">Scan at reception, doctor chamber, lab or pharmacy</div>
           </div>
 
           <!-- Doctor & Patient 2-Column Info -->
@@ -455,6 +475,17 @@ export const DoctorSerialSlipModal: React.FC<DoctorSerialSlipModalProps> = ({
                 {serial.doctorRoomNumber}
               </span>
             </div>
+          </div>
+
+          {/* Scannable Barcode */}
+          <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white py-2.5">
+            <div
+              className="[&>svg]:max-w-full [&>svg]:h-auto"
+              dangerouslySetInnerHTML={{ __html: barcodeSvg(serial.tokenNo, { height: 52, moduleWidth: 1.6 }) }}
+            />
+            <p className="text-[10px] text-slate-400 mt-1">
+              Scan this barcode anywhere in the system to open this serial
+            </p>
           </div>
 
           {/* Details Grid */}

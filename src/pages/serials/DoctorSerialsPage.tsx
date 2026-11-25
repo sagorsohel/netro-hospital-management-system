@@ -44,6 +44,7 @@ import {
   useCreateDoctorSerialMutation,
   useUpdateDoctorSerialStatusMutation,
   useDeleteDoctorSerialMutation,
+  findSerialByBarcode,
   type DoctorSerial,
 } from '../../store/api/serialApi';
 import { DoctorSerialSlipModal } from '../../components/serials/DoctorSerialSlipModal';
@@ -931,9 +932,20 @@ export const DoctorSerialsPage: React.FC = () => {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Type patient phone (e.g. 017...), name, or token number (SRL-...) to check serial..."
+                placeholder="Type phone, name, or scan / type token barcode (SRL-...) and press Enter..."
                 value={querySearch}
                 onChange={(e) => setQuerySearch(e.target.value)}
+                onKeyDown={(e) => {
+                  // Typed/scanned token + Enter opens the slip, even for another date
+                  // (a fast hardware scan is already handled by the global scanner)
+                  if (e.key !== 'Enter' || e.defaultPrevented) return;
+                  const found = findSerialByBarcode(querySearch);
+                  if (found) {
+                    e.preventDefault();
+                    setSelectedSlipSerial(found);
+                    setIsSlipOpen(true);
+                  }
+                }}
                 className="w-full h-9 pl-3 pr-8 rounded-xl border border-slate-200 bg-slate-50/70 text-xs font-medium focus:bg-white focus:border-teal-500 focus:outline-hidden"
               />
               {querySearch && (
